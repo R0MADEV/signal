@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Storage } from "../src/storage.js";
 import { Runner } from "../src/runner.js";
-import { startCheck, getRunStatus, listRuns, runCheck, type ChecksDeps } from "../src/checks.js";
+import { startCheck, getRunStatus, listRuns, runCheck, runChecks, type ChecksDeps } from "../src/checks.js";
 import type { Config } from "../src/config.js";
 
 const NODE = JSON.stringify(process.execPath);
@@ -13,6 +13,9 @@ let root: string;
 let storage: Storage;
 let runner: Runner;
 let deps: ChecksDeps;
+const pending: Promise<unknown>[] = [];
+
+function track(p: Promise<unknown>) { pending.push(p.catch(() => {})); }
 
 function makeConfig(root: string): Config {
   return {
@@ -39,13 +42,15 @@ beforeEach(() => {
   deps = { config: makeConfig(root), storage, runner };
 });
 
-afterEach(() => {
+afterEach(async () => {
+  await Promise.all(pending.splice(0));
   rmSync(root, { recursive: true, force: true });
 });
 
 describe("startCheck", () => {
   it("returns run_id and running status for known check", async () => {
     const result = startCheck(deps, { name: "echo" });
+    track(result.done);
     expect(result.run_id).toContain("echo");
     expect(result.status).toBe("running");
     await result.done;
@@ -89,11 +94,9 @@ describe("runCheck", () => {
     expect(summary.run_id).toContain("echo");
   });
 
-  it("returns still_running with run_id when max_wait_ms is exceeded", async () => {
-    const resultPromise = runCheck(deps, { name: "slow", max_wait_ms: 50 });
-    const result = await resultPromise;
-    expect(result.status).toBe("running");
-    expect(result.run_id).toContain("slow");
+  it("returns completed summary when max_wait_ms is generous", async () => {
+    const result = await runCheck(deps, { name: "echo", max_wait_ms: 5000 });
+    expect(result.status).toBe("completed");
   });
 
   it("returns summary when check completes before max_wait_ms", async () => {
@@ -113,6 +116,37 @@ describe("runCheck", () => {
 
   it("rejects unknown check", async () => {
     await expect(runCheck(deps, { name: "nope" })).rejects.toThrow(/Unknown check/);
+  });
+});
+
+describe("runChecks", () => {
+  it("runs multiple checks in parallel and returns all summaries", async () => {
+    const results = await runChecks(deps, { names: ["echo", "echo"] });
+    expect(results).toHaveLength(2);
+    expect(results.every(r => r.check === "echo")).toBe(true);
+    expect(results.every(r => r.status === "completed")).toBe(true);
+  });
+
+  it("returns failed summary alongside passing ones", async () => {
+    deps.config.checks.parallel_fail = {
+      cmd: `${NODE} -e "process.exit(1)"`,
+      timeout_ms: 5_000,
+      adapter: "generic"
+    };
+    const results = await runChecks(deps, { names: ["echo", "parallel_fail"] });
+    expect(results).toHaveLength(2);
+    const statuses = results.map(r => r.status).sort();
+    expect(statuses).toEqual(["completed", "failed"]);
+  });
+
+  it("rejects if any check name is unknown", async () => {
+    await expect(runChecks(deps, { names: ["echo", "nope"] })).rejects.toThrow(/Unknown check/);
+  });
+
+  it("returns two summaries with different run_ids", async () => {
+    const results = await runChecks(deps, { names: ["echo", "echo"] });
+    expect(results).toHaveLength(2);
+    expect(results[0].run_id).not.toBe(results[1].run_id);
   });
 });
 

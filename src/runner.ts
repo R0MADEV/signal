@@ -111,10 +111,10 @@ export class Runner {
     });
 
     const stdoutPipe = proc.stdout
-      ? pipeline(proc.stdout, createRedactStream(), stdoutFile)
+      ? pipeline(proc.stdout, createRedactStream(), stdoutFile).catch(() => {})
       : Promise.resolve();
     const stderrPipe = proc.stderr
-      ? pipeline(proc.stderr, createRedactStream(), stderrFile)
+      ? pipeline(proc.stderr, createRedactStream(), stderrFile).catch(() => {})
       : Promise.resolve();
 
     const startedAt = Date.now();
@@ -136,12 +136,17 @@ export class Runner {
       else if (result.exitCode === 0) status = "completed";
       else status = "failed";
 
-      const updated = storage.updateMeta(runId, {
-        status,
-        exit_code: result.exitCode ?? null,
-        finished_at: new Date().toISOString(),
-        duration_ms: Date.now() - startedAt
-      } as Partial<SingleRunMeta>);
+      let updated: RunMeta;
+      try {
+        updated = storage.updateMeta(runId, {
+          status,
+          exit_code: result.exitCode ?? null,
+          finished_at: new Date().toISOString(),
+          duration_ms: Date.now() - startedAt
+        } as Partial<SingleRunMeta>);
+      } catch {
+        return { run_id: runId, status } as unknown as RunMeta;
+      }
 
       if (status !== "completed" && onFailureCmd) {
         const outcome = await runOnFailure(

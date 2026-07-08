@@ -78,13 +78,40 @@ export async function runCheck(
     await result.done;
   }
 
-  applyRetention(deps.storage, DEFAULT_RETENTION);
-
   return summarizeRun(deps, {
     run_id: result.run_id,
     max_groups: args.max_groups,
     max_occurrences: args.max_occurrences
   });
+}
+
+export async function runChecks(
+  deps: ChecksDeps,
+  args: { names: string[]; max_groups?: number; max_occurrences?: number; max_wait_ms?: number }
+) {
+  const results = args.names.map((name) => startCheck(deps, { name }));
+
+  // suppress unhandled rejection warnings — errors are surfaced via summaries
+  for (const r of results) {
+    r.done.catch(() => {});
+  }
+
+  if (args.max_wait_ms !== undefined) {
+    const timeout = new Promise<void>((resolve) => setTimeout(resolve, args.max_wait_ms));
+    await Promise.race([Promise.all(results.map(r => r.done)), timeout]);
+  } else {
+    await Promise.all(results.map(r => r.done));
+  }
+
+  return Promise.all(
+    results.map(r =>
+      summarizeRun(deps, {
+        run_id: r.run_id,
+        max_groups: args.max_groups,
+        max_occurrences: args.max_occurrences
+      })
+    )
+  );
 }
 
 export function getRunStatus(deps: ChecksDeps, args: { run_id: string }): RunMeta {

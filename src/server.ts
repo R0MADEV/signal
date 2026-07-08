@@ -1,6 +1,6 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { startCheck, getRunStatus, listRuns, runCheck, type ChecksDeps } from "./checks.js";
+import { startCheck, getRunStatus, listRuns, runCheck, runChecks, type ChecksDeps } from "./checks.js";
 import { isMultiStep } from "./config.js";
 import { summarizeRun } from "./summary.js";
 import { diffRuns } from "./diff.js";
@@ -75,6 +75,26 @@ export function createServer(deps: ChecksDeps): McpServer {
         deps.storage.deleteRun(summary.run_id);
       }
       return textJson(summary);
+    }
+  );
+
+  server.tool(
+    "run_checks",
+    "Run multiple checks in parallel and wait for all to complete. Returns an array of compact summaries — one per check. Use instead of calling run_check repeatedly when checks are independent.",
+    {
+      names: z.array(z.string().min(1)).min(1),
+      max_groups: z.number().int().positive().optional(),
+      max_occurrences: z.number().int().positive().optional(),
+      max_wait_ms: z.number().int().positive().optional(),
+      severity: z.enum(["error", "warning"]).optional(),
+      sort_by: z.enum(["count", "last", "first"]).optional()
+    },
+    async ({ names, max_groups, max_occurrences, max_wait_ms }) => {
+      const summaries = await runChecks(deps, { names, max_groups, max_occurrences, max_wait_ms });
+      for (const s of summaries) {
+        if (s.status !== "running") deps.storage.deleteRun(s.run_id);
+      }
+      return textJson(summaries);
     }
   );
 

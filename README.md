@@ -155,6 +155,7 @@ Each step has its own adapter. `get_run_summary` returns which step failed and t
 | `cypress` | Cypress `(Running: ...)` blocks with numbered failures |
 | `playwright` | Playwright numbered failure blocks with browser tag and `at` locations |
 | `rspec` | RSpec `Failures:` section with numbered entries and `# file:line` locations |
+| `go_test` | Go `--- FAIL: TestName` lines with `file:line: message` from `go test ./...` |
 | `generic` | Any tool emitting `file:line:col message` — covers tsc, mypy, ruff, pyright, gcc, clang, and more |
 
 Adding an adapter is ~30–50 lines + tests. The interface is:

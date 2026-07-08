@@ -111,11 +111,33 @@ export function isMultiStep(check: Check): check is MultiStepCheck {
 }
 
 export function parseConfig(raw: unknown): Config {
-  const obj = raw as Record<string, unknown>;
-  const checks = obj && typeof obj.checks === "object" && obj.checks !== null
-    ? applyAdapterDetection(obj.checks as Record<string, unknown>)
-    : obj?.checks;
-  return ConfigSchema.parse({ ...obj, checks });
+  const interpolated = interpolateEnv(raw);
+  return ConfigSchema.parse(applyAdapterDetectionToRaw(interpolated));
+}
+
+const ENV_RE = /\$\{([^}]+)\}/g;
+
+function interpolateEnv(value: unknown): unknown {
+  if (typeof value === "string") {
+    return value.replace(ENV_RE, (_, name) => process.env[name] ?? `\${${name}}`);
+  }
+  if (Array.isArray(value)) return value.map(interpolateEnv);
+  if (typeof value === "object" && value !== null) {
+    const obj = value as { [k: string]: unknown };
+    const result: { [k: string]: unknown } = {};
+    for (const [k, v] of Object.entries(obj)) {
+      result[k] = interpolateEnv(v);
+    }
+    return result;
+  }
+  return value;
+}
+
+function applyAdapterDetectionToRaw(raw: unknown): unknown {
+  if (typeof raw !== "object" || raw === null || Array.isArray(raw)) return raw;
+  const obj = raw as { [k: string]: unknown };
+  if (typeof obj.checks !== "object" || obj.checks === null) return raw;
+  return { ...obj, checks: applyAdapterDetection(obj.checks) };
 }
 
 export function parseRawConfig(raw: unknown): RawConfig {
@@ -144,10 +166,11 @@ export function detectProject(rawConfig: RawConfig, cwd: string): string | null 
 export function resolveConfig(rawConfig: RawConfig, projectName: string): Config {
   const project = rawConfig.projects[projectName];
   if (!project) throw new Error(`Project '${projectName}' not found in config`);
-  return ConfigSchema.parse({ root: project.root, checks: applyAdapterDetection(project.checks) });
+  const interpolated = interpolateEnv({ root: project.root, checks: project.checks });
+  return ConfigSchema.parse(applyAdapterDetectionToRaw(interpolated));
 }
 
-function applyAdapterDetection(checks: Record<string, unknown>): Record<string, unknown> {
+function applyAdapterDetection(checks: object): Record<string, unknown> {
   const result: Record<string, unknown> = {};
   for (const [name, check] of Object.entries(checks)) {
     if (!check || typeof check !== "object") { result[name] = check; continue; }

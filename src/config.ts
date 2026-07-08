@@ -25,7 +25,9 @@ const ADAPTER = z.enum([
   "rspec",
   "go_test",
   "cargo_test",
-  "mocha"
+  "mocha",
+  "cargo_clippy",
+  "rubocop"
 ]);
 const ENV = z.record(z.string());
 

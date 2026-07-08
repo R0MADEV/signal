@@ -14,6 +14,8 @@ const RULES: Array<{ pattern: RegExp; adapter: AdapterName }> = [
   { pattern: /\brspec\b/, adapter: "rspec" },
   { pattern: /\bgo\s+test\b/, adapter: "go_test" },
   { pattern: /\bcargo\s+test\b/, adapter: "cargo_test" },
+  { pattern: /\bcargo\s+clippy\b/, adapter: "cargo_clippy" },
+  { pattern: /\brubocop\b/, adapter: "rubocop" },
   { pattern: /\bmocha\b/, adapter: "mocha" },
   { pattern: /\bcypress\b/, adapter: "cypress" },
   { pattern: /\bplaywright\b/, adapter: "playwright" },

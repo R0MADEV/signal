@@ -91,6 +91,15 @@ describe("detectAdapter", () => {
     expect(detectAdapter("npx playwright test")).toBe("playwright");
   });
 
+  it("detects cargo clippy", () => {
+    expect(detectAdapter("cargo clippy -- -D warnings")).toBe("cargo_clippy");
+  });
+
+  it("detects rubocop", () => {
+    expect(detectAdapter("bundle exec rubocop")).toBe("rubocop");
+    expect(detectAdapter("rubocop app/")).toBe("rubocop");
+  });
+
   it("detects bun test", () => {
     expect(detectAdapter("bun test")).toBe("bun_test");
     expect(detectAdapter("bun --filter '*' test")).toBe("bun_test");

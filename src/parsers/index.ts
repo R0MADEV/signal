@@ -20,6 +20,8 @@ import { parseRspec } from "./rspec.js";
 import { parseGoTest } from "./go_test.js";
 import { parseCargoTest } from "./cargo_test.js";
 import { parseMocha } from "./mocha.js";
+import { parseCargoClipy } from "./cargo_clippy.js";
+import { parseRubocop } from "./rubocop.js";
 
 export type AdapterName =
   | "phpstan"
@@ -42,7 +44,9 @@ export type AdapterName =
   | "rspec"
   | "go_test"
   | "cargo_test"
-  | "mocha";
+  | "mocha"
+  | "cargo_clippy"
+  | "rubocop";
 
 export const parsers: Record<AdapterName, Parser> = {
   phpstan: { name: "phpstan", parse: parsePhpstan, buildRerunCmd: buildPhpstanRerunCmd },
@@ -65,7 +69,9 @@ export const parsers: Record<AdapterName, Parser> = {
   rspec: { name: "rspec", parse: parseRspec },
   go_test: { name: "go_test", parse: parseGoTest },
   cargo_test: { name: "cargo_test", parse: parseCargoTest },
-  mocha: { name: "mocha", parse: parseMocha }
+  mocha: { name: "mocha", parse: parseMocha },
+  cargo_clippy: { name: "cargo_clippy", parse: parseCargoClipy },
+  rubocop: { name: "rubocop", parse: parseRubocop }
 };
 
 export type { ParsedError, Parser, ParserInput } from "./types.js";

@@ -158,6 +158,8 @@ Each step has its own adapter. `get_run_summary` returns which step failed and t
 | `go_test` | Go `--- FAIL: TestName` lines with `file:line: message` from `go test ./...` |
 | `cargo_test` | Rust `cargo test` — parses panic sections with file/line and failures list |
 | `mocha` | Mocha `N failing` section with numbered entries and `at` locations |
+| `cargo_clippy` | Rust `cargo clippy` — `error[CODE]: message` + `-->` location lines |
+| `rubocop` | Ruby RuboCop `file:line:col: SEVERITY: RuleName: message` format |
 | `generic` | Any tool emitting `file:line:col message` — covers tsc, mypy, ruff, pyright, gcc, clang, and more |
 
 Adding an adapter is ~30–50 lines + tests. The interface is:

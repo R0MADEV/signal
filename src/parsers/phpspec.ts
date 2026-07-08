@@ -23,7 +23,7 @@ export function parsePhpspec({ stdout }: ParserInput): ParsedError[] {
   // PHPSpec uses \x08 (backspace) to animate progress in the terminal.
   // Strip them so the spec class name is left as plain text.
   const lines = stdout
-    .replace(/\x08+/g, "")
+    .replace(/\x08+/g, "\n")  // treat backspace runs as line breaks (phpspec uses them to overwrite progress)
     .replace(/\r\n/g, "\n")
     .replace(/\r/g, "\n")
     .split("\n");

@@ -17,7 +17,9 @@ const ADAPTER = z.enum([
   "pytest",
   "biome",
   "json_log",
-  "bun_test"
+  "bun_test",
+  "jest",
+  "cypress"
 ]);
 const ENV = z.record(z.string());
 

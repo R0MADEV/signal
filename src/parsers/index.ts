@@ -13,6 +13,8 @@ import { parsePytest } from "./pytest.js";
 import { parseBiome } from "./biome.js";
 import { parseJsonLog } from "./json_log.js";
 import { parseBunTest } from "./bun_test.js";
+import { parseJest } from "./jest.js";
+import { parseCypress } from "./cypress.js";
 
 export type AdapterName =
   | "phpstan"
@@ -28,7 +30,9 @@ export type AdapterName =
   | "pytest"
   | "biome"
   | "json_log"
-  | "bun_test";
+  | "bun_test"
+  | "jest"
+  | "cypress";
 
 export const parsers: Record<AdapterName, Parser> = {
   phpstan: { name: "phpstan", parse: parsePhpstan, buildRerunCmd: buildPhpstanRerunCmd },
@@ -44,7 +48,9 @@ export const parsers: Record<AdapterName, Parser> = {
   pytest: { name: "pytest", parse: parsePytest },
   biome: { name: "biome", parse: parseBiome },
   json_log: { name: "json_log", parse: parseJsonLog },
-  bun_test: { name: "bun_test", parse: parseBunTest }
+  bun_test: { name: "bun_test", parse: parseBunTest },
+  jest: { name: "jest", parse: parseJest },
+  cypress: { name: "cypress", parse: parseCypress }
 };
 
 export type { ParsedError, Parser, ParserInput } from "./types.js";

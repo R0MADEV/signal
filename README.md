@@ -151,6 +151,8 @@ Each step has its own adapter. `get_run_summary` returns which step failed and t
 | `bun_test` | Bun test runner `✗ test name` format |
 | `json_log` | Structured JSON logs (`{"level":"error","message":"..."}`) — supports multiple field aliases |
 | `junit` | JUnit XML reports |
+| `jest` | Jest `FAIL` blocks with `●` test names and `at` locations |
+| `cypress` | Cypress `(Running: ...)` blocks with numbered failures |
 | `generic` | Any tool emitting `file:line:col message` — covers tsc, mypy, ruff, pyright, gcc, clang, and more |
 
 Adding an adapter is ~30–50 lines + tests. The interface is:

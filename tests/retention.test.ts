@@ -45,6 +45,19 @@ describe("Storage.deleteRun", () => {
   });
 });
 
+describe("applyRetention with DEFAULT_RETENTION", () => {
+  it("DEFAULT_RETENTION keeps last 20 runs per check", async () => {
+    const { DEFAULT_RETENTION } = await import("../src/retention.js");
+    for (let i = 0; i < 25; i++) {
+      createRun("foo");
+      await new Promise((r) => setTimeout(r, 2));
+    }
+    const result = applyRetention(storage, DEFAULT_RETENTION);
+    expect(result.removed).toBe(5);
+    expect(storage.listRuns().length).toBe(20);
+  });
+});
+
 describe("applyRetention", () => {
   it("does nothing with empty policy", () => {
     for (let i = 0; i < 5; i++) createRun("foo");

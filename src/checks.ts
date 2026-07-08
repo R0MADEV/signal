@@ -3,6 +3,7 @@ import { isMultiStep, type Config } from "./config.js";
 import type { Storage, RunMeta } from "./storage.js";
 import type { Runner } from "./runner.js";
 import { summarizeRun } from "./summary.js";
+import { applyRetention, DEFAULT_RETENTION } from "./retention.js";
 
 export interface ChecksDeps {
   config: Config;
@@ -76,6 +77,8 @@ export async function runCheck(
   } else {
     await result.done;
   }
+
+  applyRetention(deps.storage, DEFAULT_RETENTION);
 
   return summarizeRun(deps, {
     run_id: result.run_id,

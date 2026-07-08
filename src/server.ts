@@ -5,6 +5,7 @@ import { isMultiStep } from "./config.js";
 import { summarizeRun } from "./summary.js";
 import { diffRuns } from "./diff.js";
 import { rerunFailed } from "./rerun.js";
+import { applyRetention, DEFAULT_RETENTION } from "./retention.js";
 
 export function createServer(deps: ChecksDeps): McpServer {
   const server = new McpServer({
@@ -49,9 +50,11 @@ export function createServer(deps: ChecksDeps): McpServer {
     { name: z.string().min(1) },
     async ({ name }) => {
       const result = startCheck(deps, { name });
-      result.done.catch((err) => {
-        console.error(`[signal-mcp] run ${result.run_id} rejected:`, err);
-      });
+      result.done
+        .then(() => applyRetention(deps.storage, DEFAULT_RETENTION))
+        .catch((err) => {
+          console.error(`[signal-mcp] run ${result.run_id} rejected:`, err);
+        });
       return textJson({ run_id: result.run_id, status: result.status });
     }
   );

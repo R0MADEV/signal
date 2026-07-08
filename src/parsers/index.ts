@@ -18,6 +18,7 @@ import { parseCypress } from "./cypress.js";
 import { parsePlaywright } from "./playwright.js";
 import { parseRspec } from "./rspec.js";
 import { parseGoTest } from "./go_test.js";
+import { parseCargoTest } from "./cargo_test.js";
 
 export type AdapterName =
   | "phpstan"
@@ -38,7 +39,8 @@ export type AdapterName =
   | "cypress"
   | "playwright"
   | "rspec"
-  | "go_test";
+  | "go_test"
+  | "cargo_test";
 
 export const parsers: Record<AdapterName, Parser> = {
   phpstan: { name: "phpstan", parse: parsePhpstan, buildRerunCmd: buildPhpstanRerunCmd },
@@ -59,7 +61,8 @@ export const parsers: Record<AdapterName, Parser> = {
   cypress: { name: "cypress", parse: parseCypress },
   playwright: { name: "playwright", parse: parsePlaywright },
   rspec: { name: "rspec", parse: parseRspec },
-  go_test: { name: "go_test", parse: parseGoTest }
+  go_test: { name: "go_test", parse: parseGoTest },
+  cargo_test: { name: "cargo_test", parse: parseCargoTest }
 };
 
 export type { ParsedError, Parser, ParserInput } from "./types.js";

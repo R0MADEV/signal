@@ -22,7 +22,8 @@ const ADAPTER = z.enum([
   "cypress",
   "playwright",
   "rspec",
-  "go_test"
+  "go_test",
+  "cargo_test"
 ]);
 const ENV = z.record(z.string());
 

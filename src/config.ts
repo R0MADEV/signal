@@ -20,7 +20,8 @@ const ADAPTER = z.enum([
   "bun_test",
   "jest",
   "cypress",
-  "playwright"
+  "playwright",
+  "rspec"
 ]);
 const ENV = z.record(z.string());
 

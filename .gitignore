@@ -1,0 +1,9 @@
+node_modules/
+dist/
+.signal/
+*.tsbuildinfo
+.env
+.env.local
+.DS_Store
+scripts/dogfood*.js
+signal.config.json

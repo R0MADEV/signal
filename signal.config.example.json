@@ -1,0 +1,69 @@
+{
+  "projects": {
+    "my-node-project": {
+      "root": "/path/to/my-node-project",
+      "checks": {
+        "test": {
+          "cmd": "npx vitest run",
+          "timeout_ms": 120000,
+          "adapter": "vitest"
+        },
+        "lint": {
+          "cmd": "pnpm exec biome check src --reporter json 2>&1",
+          "timeout_ms": 60000,
+          "adapter": "biome"
+        },
+        "typecheck": {
+          "cmd": "tsc --noEmit",
+          "timeout_ms": 120000,
+          "adapter": "generic"
+        }
+      }
+    },
+    "my-python-project": {
+      "root": "/path/to/my-python-project",
+      "checks": {
+        "test": {
+          "cmd": "uv run pytest",
+          "timeout_ms": 300000,
+          "adapter": "pytest"
+        },
+        "lint": {
+          "cmd": "uv run ruff check .",
+          "timeout_ms": 60000,
+          "adapter": "generic"
+        },
+        "types": {
+          "cmd": "uv run mypy src",
+          "timeout_ms": 120000,
+          "adapter": "generic"
+        }
+      }
+    },
+    "my-docker-project": {
+      "root": "/path/to/my-docker-project",
+      "checks": {
+        "test": {
+          "cmd": "docker exec my-container vendor/bin/phpunit",
+          "timeout_ms": 300000,
+          "adapter": "phpunit",
+          "strip_path_prefix": "/var/www/html/"
+        },
+        "phpstan": {
+          "cmd": "docker exec my-container vendor/bin/phpstan analyse --error-format=json",
+          "timeout_ms": 120000,
+          "adapter": "phpstan",
+          "strip_path_prefix": "/var/www/html/"
+        },
+        "pipeline": {
+          "steps": [
+            { "name": "clean",   "cmd": "docker exec my-container rm -rf var/cache/*", "timeout_ms": 30000 },
+            { "name": "prepare", "cmd": "docker exec my-container bin/prepare-test-db",  "timeout_ms": 120000 },
+            { "name": "test",    "cmd": "docker exec my-container vendor/bin/behat",     "timeout_ms": 300000, "adapter": "behat", "strip_path_prefix": "/var/www/html/" }
+          ],
+          "fail_fast": true
+        }
+      }
+    }
+  }
+}

@@ -105,6 +105,28 @@ describe("parseVitest", () => {
     expect(out[0].file).toBe("tests/deep/nested/x.test.ts");
   });
 
+  it("parses vitest browser mode failures (|browser (chromium)| header)", () => {
+    const stdout = [
+      " RUN  v3.2.4 /proj",
+      "",
+      " ❯ |browser (chromium)| tests/components/Foo.browser.test.tsx (2 tests | 1 failed) 426ms",
+      "   ✓ Foo (browser) > renders title 69ms",
+      "   × Foo (browser) > renders the description text 334ms",
+      "     → Unable to find an element with the text: /hello/i",
+      "",
+      " Test Files  1 failed (1)",
+      "      Tests  1 failed | 1 passed (2)"
+    ].join("\n");
+    const out = parseVitest({ stdout, stderr: "", projectRoot: ROOT });
+    expect(out).toHaveLength(1);
+    expect(out[0]).toMatchObject({
+      file: "tests/components/Foo.browser.test.tsx",
+      type: "error",
+      symbol: "Foo (browser) > renders the description text",
+      message: expect.stringContaining("Unable to find an element")
+    });
+  });
+
   it("handles failures without an exact ❯ position by leaving line/column null", () => {
     const stdout = [
       "⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯",

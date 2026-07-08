@@ -19,6 +19,7 @@ import { parsePlaywright } from "./playwright.js";
 import { parseRspec } from "./rspec.js";
 import { parseGoTest } from "./go_test.js";
 import { parseCargoTest } from "./cargo_test.js";
+import { parseMocha } from "./mocha.js";
 
 export type AdapterName =
   | "phpstan"
@@ -40,7 +41,8 @@ export type AdapterName =
   | "playwright"
   | "rspec"
   | "go_test"
-  | "cargo_test";
+  | "cargo_test"
+  | "mocha";
 
 export const parsers: Record<AdapterName, Parser> = {
   phpstan: { name: "phpstan", parse: parsePhpstan, buildRerunCmd: buildPhpstanRerunCmd },
@@ -62,7 +64,8 @@ export const parsers: Record<AdapterName, Parser> = {
   playwright: { name: "playwright", parse: parsePlaywright },
   rspec: { name: "rspec", parse: parseRspec },
   go_test: { name: "go_test", parse: parseGoTest },
-  cargo_test: { name: "cargo_test", parse: parseCargoTest }
+  cargo_test: { name: "cargo_test", parse: parseCargoTest },
+  mocha: { name: "mocha", parse: parseMocha }
 };
 
 export type { ParsedError, Parser, ParserInput } from "./types.js";

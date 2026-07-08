@@ -23,7 +23,8 @@ const ADAPTER = z.enum([
   "playwright",
   "rspec",
   "go_test",
-  "cargo_test"
+  "cargo_test",
+  "mocha"
 ]);
 const ENV = z.record(z.string());
 

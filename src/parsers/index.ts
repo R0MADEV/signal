@@ -15,6 +15,7 @@ import { parseJsonLog } from "./json_log.js";
 import { parseBunTest } from "./bun_test.js";
 import { parseJest } from "./jest.js";
 import { parseCypress } from "./cypress.js";
+import { parsePlaywright } from "./playwright.js";
 
 export type AdapterName =
   | "phpstan"
@@ -32,7 +33,8 @@ export type AdapterName =
   | "json_log"
   | "bun_test"
   | "jest"
-  | "cypress";
+  | "cypress"
+  | "playwright";
 
 export const parsers: Record<AdapterName, Parser> = {
   phpstan: { name: "phpstan", parse: parsePhpstan, buildRerunCmd: buildPhpstanRerunCmd },
@@ -50,7 +52,8 @@ export const parsers: Record<AdapterName, Parser> = {
   json_log: { name: "json_log", parse: parseJsonLog },
   bun_test: { name: "bun_test", parse: parseBunTest },
   jest: { name: "jest", parse: parseJest },
-  cypress: { name: "cypress", parse: parseCypress }
+  cypress: { name: "cypress", parse: parseCypress },
+  playwright: { name: "playwright", parse: parsePlaywright }
 };
 
 export type { ParsedError, Parser, ParserInput } from "./types.js";

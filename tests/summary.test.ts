@@ -113,6 +113,35 @@ describe("summarizeRun", () => {
     expect(() => summarizeRun(deps, { run_id: meta.run_id, max_groups: -1 })).toThrow();
   });
 
+  it("includes raw_tail when run fails and adapter parses nothing", async () => {
+    deps.config.checks.unknown_format = {
+      cmd: `${NODE} -e "console.error('custom error: something went wrong\\ndetail: line 2\\ndetail: line 3'); process.exit(1)"`,
+      timeout_ms: 5_000,
+      adapter: "generic"
+    };
+    const r = startCheck(deps, { name: "unknown_format" });
+    await r.done;
+    const s = summarizeRun(deps, { run_id: r.run_id });
+    expect(s.error_count).toBe(0);
+    expect(s.raw_tail).toBeDefined();
+    expect(s.raw_tail).toContain("custom error: something went wrong");
+  });
+
+  it("does not include raw_tail when run passes", async () => {
+    const r = startCheck(deps, { name: "clean" });
+    await r.done;
+    const s = summarizeRun(deps, { run_id: r.run_id });
+    expect(s.raw_tail).toBeUndefined();
+  });
+
+  it("does not include raw_tail when errors were parsed", async () => {
+    const r = startCheck(deps, { name: "noisy" });
+    await r.done;
+    const s = summarizeRun(deps, { run_id: r.run_id });
+    expect(s.error_count).toBeGreaterThan(0);
+    expect(s.raw_tail).toBeUndefined();
+  });
+
   it("falls back gracefully when adapter parsing throws", async () => {
     deps.config.checks.brokenJson = {
       cmd: `${NODE} -e "console.log('not json at all')"`,

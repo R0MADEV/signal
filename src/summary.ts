@@ -25,6 +25,7 @@ export interface RunSummary {
   summary: string;
   top_groups: ErrorGroup[];
   parse_error?: string;
+  raw_tail?: string;
   kind?: "single" | "multi-step";
   failed_step?: string | null;
   step_count?: number;
@@ -209,6 +210,10 @@ export function summarizeRun(deps: ChecksDeps, args: SummarizeArgs): RunSummary 
     top_groups
   };
   if (parse_error) base.parse_error = parse_error;
+  if (meta.status === "failed" && errors_count === 0) {
+    const tail = readRawTail(deps, args.run_id, meta);
+    if (tail) base.raw_tail = tail;
+  }
 
   if (meta.kind === "multi-step") {
     base.kind = "multi-step";
@@ -227,6 +232,37 @@ function stepSummary(s: StepMeta): SummaryStep {
     exit_code: s.exit_code,
     duration_ms: s.duration_ms
   };
+}
+
+const RAW_TAIL_LINES = 30;
+
+function readRawTail(deps: ChecksDeps, run_id: string, meta: RunMeta): string | undefined {
+  try {
+    if (meta.kind === "multi-step") {
+      const mMeta = meta as MultiStepRunMeta;
+      const failIdx = mMeta.failed_step_index;
+      if (failIdx === null || failIdx === undefined) return undefined;
+      const paths = deps.storage.pathsForStep(run_id, failIdx);
+      const combined = [
+        readFileSync(paths.stdout, "utf8"),
+        readFileSync(paths.stderr, "utf8")
+      ].filter(Boolean).join("\n");
+      return lastLines(combined, RAW_TAIL_LINES);
+    }
+    const paths = deps.storage.pathsFor(run_id);
+    const combined = [
+      readFileSync(paths.stdout, "utf8"),
+      readFileSync(paths.stderr, "utf8")
+    ].filter(Boolean).join("\n");
+    return lastLines(combined, RAW_TAIL_LINES);
+  } catch {
+    return undefined;
+  }
+}
+
+function lastLines(text: string, n: number): string {
+  const lines = text.split("\n").filter(l => l.trim());
+  return lines.slice(-n).join("\n");
 }
 
 function sortGroups(groups: ErrorGroup[], sortBy?: "count" | "last" | "first"): ErrorGroup[] {

@@ -79,6 +79,45 @@ Or add it manually to your `~/.claude.json`:
 
 Signal auto-detects the active project from the working directory — it matches any subdirectory of a configured project root.
 
+### Environment variables in config
+
+Use `${VAR}` in any string field of `signal.config.json` to avoid hardcoding machine-specific values like Docker container names or paths:
+
+```json
+{
+  "projects": {
+    "my-project": {
+      "root": "/path/to/my-project",
+      "checks": {
+        "test": {
+          "cmd": "docker exec ${APP_CONTAINER} pytest"
+        }
+      }
+    }
+  }
+}
+```
+
+Define the variables in the MCP server registration so each developer sets their own values without touching the shared config:
+
+```json
+{
+  "mcpServers": {
+    "signal": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["/path/to/signal-mcp/dist/index.js"],
+      "env": {
+        "SIGNAL_CONFIG": "/path/to/signal.config.json",
+        "APP_CONTAINER": "my-app-container-1"
+      }
+    }
+  }
+}
+```
+
+If a variable is not set, the literal `${VAR}` is kept unchanged. Variables without braces (`$VAR`) are not interpolated.
+
 ## MCP tools
 
 | Tool | Description |

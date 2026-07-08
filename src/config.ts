@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { z } from "zod";
+import { detectAdapter } from "./detect_adapter.js";
 
 const SAFE_NAME = /^[a-zA-Z0-9_-]+$/;
 const ADAPTER = z.enum([
@@ -108,7 +109,11 @@ export function isMultiStep(check: Check): check is MultiStepCheck {
 }
 
 export function parseConfig(raw: unknown): Config {
-  return ConfigSchema.parse(raw);
+  const obj = raw as Record<string, unknown>;
+  const checks = obj && typeof obj.checks === "object" && obj.checks !== null
+    ? applyAdapterDetection(obj.checks as Record<string, unknown>)
+    : obj?.checks;
+  return ConfigSchema.parse({ ...obj, checks });
 }
 
 export function parseRawConfig(raw: unknown): RawConfig {
@@ -137,7 +142,33 @@ export function detectProject(rawConfig: RawConfig, cwd: string): string | null 
 export function resolveConfig(rawConfig: RawConfig, projectName: string): Config {
   const project = rawConfig.projects[projectName];
   if (!project) throw new Error(`Project '${projectName}' not found in config`);
-  return ConfigSchema.parse({ root: project.root, checks: project.checks });
+  return ConfigSchema.parse({ root: project.root, checks: applyAdapterDetection(project.checks) });
+}
+
+function applyAdapterDetection(checks: Record<string, unknown>): Record<string, unknown> {
+  const result: Record<string, unknown> = {};
+  for (const [name, check] of Object.entries(checks)) {
+    if (!check || typeof check !== "object") { result[name] = check; continue; }
+    const c = check as Record<string, unknown>;
+    if ("cmd" in c && typeof c.cmd === "string" && !("adapter" in c)) {
+      const detected = detectAdapter(c.cmd);
+      result[name] = detected ? { ...c, adapter: detected } : c;
+    } else if ("steps" in c && Array.isArray(c.steps)) {
+      result[name] = {
+        ...c,
+        steps: c.steps.map((s: Record<string, unknown>) => {
+          if (typeof s.cmd === "string" && !("adapter" in s)) {
+            const detected = detectAdapter(s.cmd);
+            return detected ? { ...s, adapter: detected } : s;
+          }
+          return s;
+        })
+      };
+    } else {
+      result[name] = check;
+    }
+  }
+  return result;
 }
 
 export function loadRawConfig(path: string): RawConfig {

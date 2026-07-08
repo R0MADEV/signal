@@ -305,6 +305,51 @@ describe("parseConfig", () => {
     });
   });
 
+  describe("adapter auto-detection", () => {
+    it("detects vitest adapter from cmd when adapter is omitted", () => {
+      const cfg = parseConfig({ root: ".", checks: { test: { cmd: "npx vitest run" } } });
+      const c = cfg.checks.test;
+      if ("cmd" in c) expect(c.adapter).toBe("vitest");
+    });
+
+    it("detects pytest adapter from cmd when adapter is omitted", () => {
+      const cfg = parseConfig({ root: ".", checks: { test: { cmd: "uv run pytest" } } });
+      const c = cfg.checks.test;
+      if ("cmd" in c) expect(c.adapter).toBe("pytest");
+    });
+
+    it("falls back to generic when cmd is not recognized", () => {
+      const cfg = parseConfig({ root: ".", checks: { test: { cmd: "make test" } } });
+      const c = cfg.checks.test;
+      if ("cmd" in c) expect(c.adapter).toBe("generic");
+    });
+
+    it("respects explicit adapter even if cmd would detect differently", () => {
+      const cfg = parseConfig({ root: ".", checks: { test: { cmd: "npx vitest run", adapter: "generic" } } });
+      const c = cfg.checks.test;
+      if ("cmd" in c) expect(c.adapter).toBe("generic");
+    });
+
+    it("detects adapter per step when adapter is omitted in multi-step", () => {
+      const cfg = parseConfig({
+        root: ".",
+        checks: {
+          ci: {
+            steps: [
+              { name: "test", cmd: "npx vitest run" },
+              { name: "lint", cmd: "npx eslint ." }
+            ]
+          }
+        }
+      });
+      const c = cfg.checks.ci;
+      if ("steps" in c) {
+        expect(c.steps[0].adapter).toBe("vitest");
+        expect(c.steps[1].adapter).toBe("eslint");
+      }
+    });
+  });
+
   describe("structural", () => {
     it("rejects empty checks (no cmd, no steps)", () => {
       expect(() =>

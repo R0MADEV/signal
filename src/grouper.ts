@@ -17,12 +17,15 @@ export interface ErrorGroup {
   files: string[];
   occurrences: ErrorOccurrence[];
   step?: string;
+  first_position: number;
+  last_position: number;
 }
 
 export function groupErrors(errors: ParsedError[]): ErrorGroup[] {
   const buckets = new Map<string, ErrorGroup>();
 
-  for (const e of errors) {
+  for (let pos = 0; pos < errors.length; pos++) {
+    const e = errors[pos];
     const fp = fingerprint(e);
     const occurrence: ErrorOccurrence = {
       file: e.file,
@@ -35,6 +38,7 @@ export function groupErrors(errors: ParsedError[]): ErrorGroup[] {
     if (existing) {
       existing.count += 1;
       existing.occurrences.push(occurrence);
+      existing.last_position = pos;
       if (!existing.files.includes(e.file)) existing.files.push(e.file);
     } else {
       buckets.set(fp, {
@@ -44,7 +48,9 @@ export function groupErrors(errors: ParsedError[]): ErrorGroup[] {
         message: e.message,
         count: 1,
         files: [e.file],
-        occurrences: [occurrence]
+        occurrences: [occurrence],
+        first_position: pos,
+        last_position: pos
       });
     }
   }

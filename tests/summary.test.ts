@@ -152,6 +152,41 @@ describe("summarizeRun", () => {
     expect(s.top_groups.some(g => g.type === "warning")).toBe(true);
   });
 
+  it("sort_by=last puts the error that appears last in the log first", async () => {
+    deps.config.checks.ordered = {
+      cmd: `${NODE} -e "
+        console.log('src/a.ts:1:1: error one');
+        console.log('src/a.ts:2:1: error one');
+        console.log('src/a.ts:3:1: error one');
+        console.log('src/b.ts:10:1: error two');
+      "`,
+      timeout_ms: 5_000,
+      adapter: "generic"
+    };
+    const r = startCheck(deps, { name: "ordered" });
+    await r.done;
+    const s = summarizeRun(deps, { run_id: r.run_id, sort_by: "last" });
+    // "error two" appears last in the log → should be first when sorted by last position
+    expect(s.top_groups[0].message).toContain("error two");
+  });
+
+  it("default sort (count) puts most frequent error first", async () => {
+    deps.config.checks.ordered = {
+      cmd: `${NODE} -e "
+        console.log('src/a.ts:1:1: error one');
+        console.log('src/a.ts:2:1: error one');
+        console.log('src/a.ts:3:1: error one');
+        console.log('src/b.ts:10:1: error two');
+      "`,
+      timeout_ms: 5_000,
+      adapter: "generic"
+    };
+    const r = startCheck(deps, { name: "ordered" });
+    await r.done;
+    const s = summarizeRun(deps, { run_id: r.run_id });
+    expect(s.top_groups[0].message).toContain("error one");
+  });
+
   it("includes a human-readable one-line summary", async () => {
     const r = startCheck(deps, { name: "noisy" });
     await r.done;

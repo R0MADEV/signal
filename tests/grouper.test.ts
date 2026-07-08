@@ -123,6 +123,25 @@ describe("groupErrors", () => {
     expect(groups).toHaveLength(2);
   });
 
+  it("tracks first_position and last_position by insertion order", () => {
+    const errors = [
+      err({ message: "error A" }),  // position 0
+      err({ message: "error B" }),  // position 1
+      err({ message: "error A" }),  // position 2 — same group as 0
+      err({ message: "error C" }),  // position 3
+    ];
+    const groups = groupErrors(errors);
+    const a = groups.find(g => g.message === "error A")!;
+    const b = groups.find(g => g.message === "error B")!;
+    const c = groups.find(g => g.message === "error C")!;
+    expect(a.first_position).toBe(0);
+    expect(a.last_position).toBe(2);
+    expect(b.first_position).toBe(1);
+    expect(b.last_position).toBe(1);
+    expect(c.first_position).toBe(3);
+    expect(c.last_position).toBe(3);
+  });
+
   it("produces stable fingerprints across runs", () => {
     const e = err({ symbol: "X::y", message: "m" });
     const a = groupErrors([e])[0].fingerprint;

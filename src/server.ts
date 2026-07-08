@@ -99,10 +99,11 @@ export function createServer(deps: ChecksDeps): McpServer {
       run_id: z.string().min(1),
       max_groups: z.number().int().positive().optional(),
       max_occurrences: z.number().int().positive().optional(),
-      severity: z.enum(["error", "warning"]).optional()
+      severity: z.enum(["error", "warning"]).optional(),
+      sort_by: z.enum(["count", "last", "first"]).optional()
     },
-    async ({ run_id, max_groups, max_occurrences, severity }) => {
-      const summary = summarizeRun(deps, { run_id, max_groups, max_occurrences, severity });
+    async ({ run_id, max_groups, max_occurrences, severity, sort_by }) => {
+      const summary = summarizeRun(deps, { run_id, max_groups, max_occurrences, severity, sort_by });
       if (summary.status !== "running") {
         deps.storage.deleteRun(run_id);
       }

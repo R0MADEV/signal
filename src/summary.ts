@@ -36,6 +36,7 @@ export interface SummarizeArgs {
   max_groups?: number;
   max_occurrences?: number;
   severity?: "error" | "warning";
+  sort_by?: "count" | "last" | "first";
 }
 
 export interface RunGroups {
@@ -174,7 +175,8 @@ export function summarizeRun(deps: ChecksDeps, args: SummarizeArgs): RunSummary 
   }
 
   const { meta, groups: rawGroups, errors_count, parse_error } = computeRunGroups(deps, args.run_id);
-  const groups = args.severity ? rawGroups.filter(g => g.type === args.severity) : rawGroups;
+  const filtered = args.severity ? rawGroups.filter(g => g.type === args.severity) : rawGroups;
+  const groups = sortGroups(filtered, args.sort_by);
 
   if (meta.status === "running") {
     return {
@@ -225,6 +227,12 @@ function stepSummary(s: StepMeta): SummaryStep {
     exit_code: s.exit_code,
     duration_ms: s.duration_ms
   };
+}
+
+function sortGroups(groups: ErrorGroup[], sortBy?: "count" | "last" | "first"): ErrorGroup[] {
+  if (!sortBy || sortBy === "count") return groups;
+  if (sortBy === "last") return [...groups].sort((a, b) => b.last_position - a.last_position);
+  return [...groups].sort((a, b) => a.first_position - b.first_position);
 }
 
 function buildSummaryLine(meta: RunMeta, errorCount: number, groupCount: number): string {

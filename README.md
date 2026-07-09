@@ -32,6 +32,19 @@ npm install
 npm run build
 ```
 
+### Platform support
+
+Signal runs each check through the system shell, so what works depends on the OS:
+
+| Platform | Status | Notes |
+|---|---|---|
+| macOS | ✅ Full | commands run under `/bin/sh` |
+| Linux (Ubuntu, Arch, Fedora, …) | ✅ Full | same as macOS |
+| Windows + WSL | ✅ Full | WSL is a real Linux environment |
+| Windows (native) | ⚠️ Partial | commands run under `cmd.exe` |
+
+On **Windows native**, simple commands work (`npx vitest run`, `cargo test`, `go test ./...`, `pytest`), but any command using POSIX shell syntax — single quotes, `2>&1`, `&&`, `bash -c '...'`, pipes — will fail because `cmd.exe` doesn't understand it. If your checks use Docker or bash wrappers, run Signal from **WSL** instead.
+
 ### Generate a config automatically
 
 Run `init` inside a project to scaffold a `signal.config.json` from what's already there:

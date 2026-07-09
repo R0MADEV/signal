@@ -79,6 +79,10 @@ Or add it manually to your `~/.claude.json`:
 
 Signal auto-detects the active project from the working directory — it matches any subdirectory of a configured project root.
 
+### Config hot-reload
+
+Signal watches `signal.config.json` for changes and reloads it automatically — no need to restart the MCP server after adding or modifying a check. You'll see `[signal-mcp] config reloaded` in the server logs when it picks up a change.
+
 ### Environment variables in config
 
 Use `${VAR}` in any string field of `signal.config.json` to avoid hardcoding machine-specific values like Docker container names or paths:

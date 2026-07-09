@@ -32,6 +32,27 @@ npm install
 npm run build
 ```
 
+### Generate a config automatically
+
+Run `init` inside a project to scaffold a `signal.config.json` from what's already there:
+
+```bash
+signal-mcp init                 # scan the current directory
+signal-mcp init --dir path/to/project --out signal.config.json
+```
+
+`init` reads the project's own commands — it does not invent them:
+
+- **Node** (`package.json`) → maps the `test`, `lint`, `typecheck`, `e2e`, … scripts, using the right package manager (detected from the lockfile, walking up for monorepos)
+- **Rust** (`Cargo.toml`) → `cargo test`, `cargo clippy`
+- **Go** (`go.mod`) → `go test ./...`
+- **Python** (`pyproject.toml`) → `pytest`, `ruff`, `mypy` if present
+- **Ruby** (`Gemfile`) → `rspec`, `rubocop`
+
+It won't guess Docker container names or multi-step pipelines — review the generated file and adjust those by hand. Adapters are auto-detected at run time, so `init` leaves them out.
+
+### Or write the config by hand
+
 Create a `signal.config.json` in your project root (see `signal.config.example.json` for reference):
 
 ```json

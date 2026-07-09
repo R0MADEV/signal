@@ -1,19 +1,48 @@
 {
   "name": "signal-mcp",
   "version": "0.1.0",
-  "description": "MCP server that extracts compact diagnostics from noisy developer tooling output.",
+  "description": "MCP server that extracts compact diagnostics from noisy developer tooling output (tests, linters, type checkers, builds) so AI agents debug without burning tokens on raw logs.",
   "type": "module",
-  "private": true,
   "bin": {
     "signal-mcp": "dist/index.js"
   },
+  "files": [
+    "dist",
+    "signal.config.example.json",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "claude",
+    "ai",
+    "agent",
+    "tests",
+    "linter",
+    "diagnostics",
+    "developer-tools"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/R0MADEV/signal.git"
+  },
+  "homepage": "https://github.com/R0MADEV/signal#readme",
+  "bugs": {
+    "url": "https://github.com/R0MADEV/signal/issues"
+  },
+  "license": "MIT",
   "scripts": {
     "build": "tsc",
     "dev": "tsc -w",
     "start": "node dist/index.js",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "prepublishOnly": "npm run build"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.4",

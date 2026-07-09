@@ -8,6 +8,7 @@ import { createServer } from "./server.js";
 import { install } from "./install.js";
 import { watchConfig } from "./watch_config.js";
 import { autoLoadEnvFiles } from "./env_file.js";
+import { runInit } from "./init.js";
 
 const [, , command, ...args] = process.argv;
 
@@ -19,6 +20,12 @@ if (command === "install") {
     process.exit(1);
   }
   install(resolve(configPath));
+} else if (command === "init") {
+  const dirFlag = args.indexOf("--dir");
+  const dir = dirFlag !== -1 ? args[dirFlag + 1] : process.cwd();
+  const outFlag = args.indexOf("--out");
+  const outPath = outFlag !== -1 ? args[outFlag + 1] : resolve(dir, "signal.config.json");
+  runInit(dir, outPath);
 } else {
   main().catch((err) => {
     console.error("[signal-mcp] fatal:", err);

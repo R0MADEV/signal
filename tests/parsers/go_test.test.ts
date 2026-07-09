@@ -8,6 +8,31 @@ describe("parseGoTest", () => {
     expect(parseGoTest({ stdout: "", stderr: "", projectRoot: ROOT })).toEqual([]);
   });
 
+  it("parses testify format where file:line has no inline message", () => {
+    // testify (stretchr/testify) puts the file:line on its own line and the
+    // message underneath in an "Error:" / "Messages:" block
+    const stdout = [
+      "--- FAIL: TestEncryptDecryptString (0.00s)",
+      "    crypto_test.go:21: ",
+      "        \tError Trace:\t/usr/src/app/pkg/utils/crypto_test.go:21",
+      "        \tError:      \tNot equal: ",
+      "        \t            \texpected: \"foo\"",
+      "        \t            \tactual  : \"foo_CORRUPTED\"",
+      "        \tTest:       \tTestEncryptDecryptString",
+      "        \tMessages:   \tDecrypted token should match original",
+      "FAIL",
+      "FAIL\tirontec.com/deitu/pkg/utils\t0.022s"
+    ].join("\n");
+    const out = parseGoTest({ stdout, stderr: "", projectRoot: ROOT });
+    expect(out).toHaveLength(1);
+    expect(out[0]).toMatchObject({
+      file: "crypto_test.go",
+      line: 21,
+      symbol: "TestEncryptDecryptString"
+    });
+    expect(out[0].message).toContain("Not equal");
+  });
+
   it("returns [] when all tests pass", () => {
     const stdout = [
       "ok  \tirontec.com/deitu/pkg/apis\t0.669s",

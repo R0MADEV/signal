@@ -6,8 +6,10 @@ export function buildGoTestRerunCmd(originalCmd: string, group: RerunGroup): str
 }
 
 const FAIL_RE = /^--- FAIL: (.+?) \(\d+\.\d+s\)$/;
-const MSG_LINE_RE = /^\s+(\S+_test\.go):(\d+): (.+)$/;
-const MSG_CONT_RE = /^\s{8,}(.+)$/;
+// file:line: with an OPTIONAL inline message (plain go test has it, testify leaves it blank)
+const MSG_LINE_RE = /^\s+(\S+_test\.go):(\d+):\s*(.*)$/;
+// testify's "Error:" / "Messages:" lines carry the real message when the file:line line is blank
+const TESTIFY_MSG_RE = /^\s+(?:Error|Messages):\s*\t*(.+)$/;
 
 export function parseGoTest(input: ParserInput): ParsedError[] {
   const combined =
@@ -32,13 +34,14 @@ export function parseGoTest(input: ParserInput): ParsedError[] {
       if (msgMatch && file === "<unknown>") {
         file = msgMatch[1];
         line = parseInt(msgMatch[2], 10);
-        message = msgMatch[3].trim();
+        message = msgMatch[3].trim(); // may be empty (testify)
         i++;
-        // collect continuation lines
-        while (i < lines.length && MSG_CONT_RE.test(lines[i]) && !MSG_LINE_RE.test(lines[i])) {
-          i++;
-        }
         continue;
+      }
+      // testify: pick up the "Error:" text as the message when we don't have one yet
+      if (file !== "<unknown>" && !message) {
+        const testifyMatch = TESTIFY_MSG_RE.exec(lines[i]);
+        if (testifyMatch) message = testifyMatch[1].trim();
       }
       i++;
     }

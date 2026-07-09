@@ -6,6 +6,7 @@ import { Storage } from "./storage.js";
 import { Runner } from "./runner.js";
 import { createServer } from "./server.js";
 import { install } from "./install.js";
+import { watchConfig } from "./watch_config.js";
 
 const [, , command, ...args] = process.argv;
 
@@ -44,7 +45,9 @@ async function main(): Promise<void> {
   const root = resolve(config.root);
   const storage = new Storage(root);
   const runner = new Runner(storage);
-  const server = createServer({ config, storage, runner });
+  const deps = { config, storage, runner };
+  const server = createServer(deps);
+  watchConfig(configPath, projectName, deps);
   const transport = new StdioServerTransport();
   await server.connect(transport);
 }

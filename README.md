@@ -278,6 +278,7 @@ Runs are cleaned up automatically after each execution: the last 20 runs per che
 | `env` | object | — | Extra environment variables |
 | `strip_path_prefix` | string | — | Strip this prefix from file paths in errors (useful for Docker paths) |
 | `on_failure` | string | — | Command to run after a failure to capture extra context |
+| `description` | string | — | Human-readable description shown in `list_checks` — helps the agent pick the right check |
 
 ### Per-check fields (multi-step)
 
@@ -285,6 +286,7 @@ Runs are cleaned up automatically after each execution: the last 20 runs per che
 |---|---|---|---|
 | `steps` | array | required | Ordered list of steps, each with per-step fields above |
 | `fail_fast` | boolean | `true` | Stop pipeline on first failing step |
+| `description` | string | — | Human-readable description shown in `list_checks` |
 
 ## Development
 

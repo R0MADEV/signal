@@ -4,16 +4,28 @@
       "root": "/path/to/my-node-project",
       "checks": {
         "test": {
-          "cmd": "npx vitest run"
+          "cmd": "npx vitest run",
+          "description": "Unit tests — fast feedback after a fix."
         },
         "test_browser": {
-          "cmd": "npx vitest run --project browser"
+          "cmd": "npx vitest run --project browser",
+          "description": "Browser tests (Playwright). Run separately so a crash doesn't hide unit test failures."
+        },
+        "test_all": {
+          "description": "Unit tests first, then browser. Stops on first failure.",
+          "steps": [
+            { "name": "unit",    "cmd": "npx vitest run" },
+            { "name": "browser", "cmd": "npx vitest run --project browser", "timeout_ms": 180000 }
+          ],
+          "fail_fast": true
         },
         "lint": {
-          "cmd": "pnpm exec biome check src --reporter json 2>&1"
+          "cmd": "pnpm exec biome check src --reporter json 2>&1",
+          "description": "Biome linter."
         },
         "typecheck": {
-          "cmd": "tsc --noEmit"
+          "cmd": "tsc --noEmit",
+          "description": "TypeScript type check."
         }
       }
     },
@@ -22,16 +34,20 @@
       "checks": {
         "test": {
           "cmd": "uv run pytest",
-          "timeout_ms": 300000
+          "timeout_ms": 300000,
+          "description": "All tests (unit + e2e). Use test_unit for faster iteration."
         },
         "test_unit": {
-          "cmd": "uv run pytest tests/unit/"
+          "cmd": "uv run pytest tests/unit/",
+          "description": "Unit tests only — fast, no external dependencies."
         },
         "lint": {
-          "cmd": "uv run ruff check ."
+          "cmd": "uv run ruff check .",
+          "description": "Ruff linter."
         },
         "types": {
-          "cmd": "uv run mypy src"
+          "cmd": "uv run mypy src",
+          "description": "Mypy type check."
         }
       }
     },
@@ -39,10 +55,12 @@
       "root": "/path/to/my-rust-project",
       "checks": {
         "test": {
-          "cmd": "cargo test 2>&1"
+          "cmd": "cargo test 2>&1",
+          "description": "Rust unit tests."
         },
         "clippy": {
-          "cmd": "cargo clippy 2>&1"
+          "cmd": "cargo clippy 2>&1",
+          "description": "Rust linter — catches common mistakes."
         }
       }
     },
@@ -50,10 +68,12 @@
       "root": "/path/to/my-go-project",
       "checks": {
         "test": {
-          "cmd": "go test ./... 2>&1"
+          "cmd": "go test ./... 2>&1",
+          "description": "Go unit tests."
         },
         "lint": {
-          "cmd": "golangci-lint run ./..."
+          "cmd": "golangci-lint run ./...",
+          "description": "golangci-lint — multiple Go linters."
         }
       }
     },
@@ -61,10 +81,12 @@
       "root": "/path/to/my-ruby-project",
       "checks": {
         "test": {
-          "cmd": "bundle exec rspec"
+          "cmd": "bundle exec rspec",
+          "description": "RSpec tests."
         },
         "lint": {
-          "cmd": "bundle exec rubocop"
+          "cmd": "bundle exec rubocop",
+          "description": "RuboCop linter."
         }
       }
     },
@@ -74,13 +96,16 @@
         "phpspec": {
           "cmd": "docker exec ${APP_CONTAINER} vendor/bin/phpspec run --no-ansi",
           "adapter": "phpspec",
-          "strip_path_prefix": "/var/www/html/"
+          "strip_path_prefix": "/var/www/html/",
+          "description": "PHPSpec unit specs."
         },
         "phpstan": {
           "cmd": "docker exec ${APP_CONTAINER} vendor/bin/phpstan analyse --error-format=json",
-          "strip_path_prefix": "/var/www/html/"
+          "strip_path_prefix": "/var/www/html/",
+          "description": "PHPStan static analysis."
         },
         "pipeline": {
+          "description": "Full test pipeline: clean cache, prepare DB, run PHPUnit.",
           "steps": [
             { "name": "clean",   "cmd": "docker exec ${APP_CONTAINER} rm -rf var/cache/*", "timeout_ms": 30000 },
             { "name": "prepare", "cmd": "docker exec ${APP_CONTAINER} bin/prepare-test-db", "timeout_ms": 120000 },
@@ -95,11 +120,13 @@
       "checks": {
         "test": {
           "cmd": "docker exec ${APP_CONTAINER} bash -c 'cd /workspace && pnpm test run 2>&1'",
-          "strip_path_prefix": "/workspace/"
+          "strip_path_prefix": "/workspace/",
+          "description": "Unit tests inside the dev container."
         },
         "lint": {
           "cmd": "docker exec ${APP_CONTAINER} bash -c 'cd /workspace && pnpm exec biome check src --reporter json 2>&1'",
-          "strip_path_prefix": "/workspace/"
+          "strip_path_prefix": "/workspace/",
+          "description": "Biome linter inside the dev container."
         }
       }
     }

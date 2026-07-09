@@ -10,6 +10,7 @@ export function buildJestRerunCmd(originalCmd: string, group: RerunGroup): strin
 }
 
 const FAIL_FILE_RE = /^FAIL\s+(.+)$/;
+const PASS_FILE_RE = /^PASS\s+/;
 const TEST_NAME_RE = /^\s+●\s+(.+)$/;
 const AT_RE = /at\s+\S+\s+\((.+):(\d+):(\d+)\)|at\s+(.+):(\d+):(\d+)/;
 const MSG_RE = /^\s{4}(.+)$/;
@@ -31,6 +32,14 @@ export function parseJest(input: ParserInput): ParsedError[] {
       continue;
     }
 
+    // A PASS file has no failures — clear the current file so any '●' blocks
+    // under it (jest prints '● Console' for console.log output) aren't captured.
+    if (PASS_FILE_RE.test(lines[i])) {
+      currentFile = null;
+      i++;
+      continue;
+    }
+
     const nameMatch = TEST_NAME_RE.exec(lines[i]);
     if (!nameMatch) {
       i++;
@@ -38,6 +47,13 @@ export function parseJest(input: ParserInput): ParsedError[] {
     }
 
     const symbol = nameMatch[1].trim();
+
+    // '● Console' is jest's marker for console.log output, not a failing test.
+    // Also skip any '●' block when we're not under a FAIL file.
+    if (symbol === "Console" || currentFile === null) {
+      i++;
+      continue;
+    }
     i++;
 
     let message = "";

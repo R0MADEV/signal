@@ -8,6 +8,45 @@ describe("parseJest", () => {
     expect(parseJest({ stdout: "", stderr: "", projectRoot: ROOT })).toEqual([]);
   });
 
+  it("ignores the '● Console' pseudo-block jest uses to group console.log output", () => {
+    // console.log output under PASS files must NOT be reported as failures
+    const stdout = [
+      "PASS tests/helpers/perf.spec.ts",
+      "  ● Console",
+      "",
+      "    console.log",
+      "      [perf] substring: 35 ms",
+      "",
+      "      at log (tests/helpers/perf.spec.ts:84:11)"
+    ].join("\n");
+    expect(parseJest({ stdout, stderr: "", projectRoot: ROOT })).toEqual([]);
+  });
+
+  it("captures a real failure but not console output from a passing file after it", () => {
+    const stdout = [
+      "FAIL tests/hooks/useThing.spec.ts",
+      "  ● useThing › resolves the value",
+      "",
+      "    expect(received).toBe(expected)",
+      "",
+      "      at Object.<anonymous> (tests/hooks/useThing.spec.ts:105:36)",
+      "",
+      "PASS tests/helpers/perf.spec.ts",
+      "  ● Console",
+      "",
+      "    console.log",
+      "      [perf] 35 ms",
+      "      at log (tests/helpers/perf.spec.ts:84:11)"
+    ].join("\n");
+    const out = parseJest({ stdout, stderr: "", projectRoot: ROOT });
+    expect(out).toHaveLength(1);
+    expect(out[0]).toMatchObject({
+      file: "tests/hooks/useThing.spec.ts",
+      line: 105,
+      symbol: "useThing › resolves the value"
+    });
+  });
+
   it("returns [] when all tests pass", () => {
     const stdout = [
       "PASS src/foo.test.ts",

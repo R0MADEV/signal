@@ -8,7 +8,8 @@ export function buildPytestRerunCmd(originalCmd: string, group: RerunGroup): str
   return `${originalCmd} ${file}::${group.symbol} -v`;
 }
 
-const FAILED_RE = /^FAILED\s+(.+?)::(.+?)\s+-\s+(.+)$/;
+// The " - message" suffix is only present with some pytest configs; make it optional.
+const FAILED_RE = /^FAILED\s+(.+?\.py)::(.+?)(?:\s+-\s+(.+))?$/;
 const POS_RE = /^(.+\.py):(\d+):\s*.+/;
 const E_LINE_RE = /^E\s+(.+)$/;
 
@@ -24,7 +25,7 @@ export function parsePytest(input: ParserInput): ParsedError[] {
       failed.push({
         file: relativizePath(m[1], input.projectRoot),
         symbol: m[2].trim(),
-        message: m[3].trim()
+        message: m[3]?.trim() ?? ""
       });
     }
   }
@@ -55,7 +56,7 @@ export function parsePytest(input: ParserInput): ParsedError[] {
       line: lineMap.get(file) ?? null,
       column: null,
       type: "error" as const,
-      message: ctx || message,
+      message: ctx || message || symbol,
       symbol,
       ...(ctx ? { context: ctx } : {})
     };

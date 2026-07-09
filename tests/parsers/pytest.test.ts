@@ -13,6 +13,32 @@ describe("parsePytest", () => {
     expect(parsePytest({ stdout, stderr: "", projectRoot: ROOT })).toEqual([]);
   });
 
+  it("captures FAILED lines with no inline message (default pytest summary)", () => {
+    // Default pytest -ra summary emits 'FAILED file::test' WITHOUT ' - message'
+    const stdout = [
+      "=========================== short test summary info ============================",
+      "FAILED tests/unit/test_taxonomy_name_normalization.py::test_already_normalized_is_idempotent",
+      "================== 1 failed, 199 passed, 14 warnings in 1.55s =================="
+    ].join("\n");
+    const out = parsePytest({ stdout, stderr: "", projectRoot: ROOT });
+    expect(out).toHaveLength(1);
+    expect(out[0]).toMatchObject({
+      file: "tests/unit/test_taxonomy_name_normalization.py",
+      symbol: "test_already_normalized_is_idempotent"
+    });
+  });
+
+  it("captures multiple FAILED lines without inline messages", () => {
+    const stdout = [
+      "FAILED tests/unit/test_a.py::test_one",
+      "FAILED tests/unit/test_b.py::test_two"
+    ].join("\n");
+    const out = parsePytest({ stdout, stderr: "", projectRoot: ROOT });
+    expect(out).toHaveLength(2);
+    expect(out[0].symbol).toBe("test_one");
+    expect(out[1].symbol).toBe("test_two");
+  });
+
   it("parses a FAILED line into a ParsedError with symbol", () => {
     const stdout = [
       "FAILED tests/unit/test_auth.py::TestAuth::test_login - AssertionError: assert False"

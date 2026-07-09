@@ -122,6 +122,16 @@ Define the variables in the MCP server registration so each developer sets their
 
 If a variable is not set, the literal `${VAR}` is kept unchanged. Variables without braces (`$VAR`) are not interpolated.
 
+Instead of listing every variable in the MCP registration, drop a `signal.env` file next to your `signal.config.json`:
+
+```
+# signal.env — machine-specific, gitignored
+APP_CONTAINER=my-app-container-1
+NIXON_CONTAINER=nixon_devcontainer-app-1
+```
+
+Signal auto-loads `signal.env` on startup. It never overwrites variables already set in the environment, so anything defined in the MCP registration still wins. Point to a different file with `SIGNAL_ENV_FILE=/path/to/.env`.
+
 ## MCP tools
 
 | Tool | Description |

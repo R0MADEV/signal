@@ -7,6 +7,7 @@ import { Runner } from "./runner.js";
 import { createServer } from "./server.js";
 import { install } from "./install.js";
 import { watchConfig } from "./watch_config.js";
+import { autoLoadEnvFiles } from "./env_file.js";
 
 const [, , command, ...args] = process.argv;
 
@@ -27,6 +28,7 @@ if (command === "install") {
 
 async function main(): Promise<void> {
   const configPath = process.env.SIGNAL_CONFIG ?? resolve("signal.config.json");
+  autoLoadEnvFiles(configPath);
   const rawConfig = loadRawConfig(configPath);
 
   const cwd = process.env.SIGNAL_CWD ?? process.cwd();

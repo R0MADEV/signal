@@ -8,3 +8,4 @@ dist/
 scripts/dogfood*.js
 scripts/fake-*.js
 signal.config.json
+signal.env

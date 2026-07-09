@@ -6,4 +6,5 @@ dist/
 .env.local
 .DS_Store
 scripts/dogfood*.js
+scripts/fake-*.js
 signal.config.json

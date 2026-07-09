@@ -18,6 +18,41 @@ describe("parseCargoTest", () => {
     expect(parseCargoTest({ stdout, stderr: "", projectRoot: ROOT })).toEqual([]);
   });
 
+  it("captures compilation errors (cargo test fails to build before running)", () => {
+    // In Rust, `cargo test` frequently fails at compile time (TDD red phase).
+    // The dev needs the compiler error with file:line, not a raw dump.
+    const stdout = [
+      "   Compiling bide v0.0.1 (/workspace/src-tauri)",
+      "error[E0432]: unresolved import `bide::config`",
+      " --> tests/tdd_config.rs:1:11",
+      "  |",
+      "1 | use bide::config::parse;",
+      "  |           ^^^^^^ could not find `config` in `bide`",
+      "",
+      "error: could not compile `bide` (test \"tdd_config\") due to 1 previous error"
+    ].join("\n");
+    const out = parseCargoTest({ stdout, stderr: "", projectRoot: ROOT });
+    expect(out).toHaveLength(1);
+    expect(out[0]).toMatchObject({
+      file: "tests/tdd_config.rs",
+      line: 1,
+      column: 11,
+      type: "error",
+      symbol: "E0432",
+      message: "unresolved import `bide::config`"
+    });
+  });
+
+  it("captures a compile error without an error code", () => {
+    const stdout = [
+      "error: expected `;`, found `}`",
+      " --> src/main.rs:10:5"
+    ].join("\n");
+    const out = parseCargoTest({ stdout, stderr: "", projectRoot: ROOT });
+    expect(out).toHaveLength(1);
+    expect(out[0]).toMatchObject({ file: "src/main.rs", line: 10, type: "error" });
+  });
+
   it("parses a panicked test with file and line", () => {
     const stdout = [
       "running 1 test",

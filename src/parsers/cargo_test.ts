@@ -1,4 +1,5 @@
 import type { ParsedError, ParserInput, RerunGroup } from "./types.js";
+import { parseCargoClipy } from "./cargo_clippy.js";
 
 export function buildCargoTestRerunCmd(originalCmd: string, group: RerunGroup): string | null {
   if (!group.symbol) return null;
@@ -21,6 +22,10 @@ export function parseCargoTest(input: ParserInput): ParsedError[] {
     input.stderr.length === 0 ? input.stdout : `${input.stdout}\n${input.stderr}`;
   const lines = combined.split("\n");
   const out: ParsedError[] = [];
+
+  // `cargo test` fails at compile time before any test runs (very common in Rust/TDD).
+  // The compiler emits the same diagnostic format as clippy, so reuse that parser.
+  out.push(...parseCargoClipy(input).filter((e) => e.type === "error"));
 
   // Collect per-test details from stdout sections
   const details = new Map<string, { file: string; line: number; column: number; message: string }>();

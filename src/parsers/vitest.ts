@@ -31,29 +31,42 @@ export function parseVitest(input: ParserInput): ParsedError[] {
   // Browser mode: parse from file headers + × failures
   const hasBrowserMode = lines.some(l => BROWSER_FILE_RE.test(l));
   if (hasBrowserMode) {
-    let currentFile: string | null = null;
+    // Build map of symbol → file from the ❯ file:line:col lines that follow each failure block
+    // First pass: collect all failures with their messages
+    const failures: Array<{ symbol: string; message: string; idx: number }> = [];
     for (let i = 0; i < lines.length; i++) {
-      const fileMatch = BROWSER_FILE_RE.exec(lines[i]);
-      if (fileMatch) {
-        currentFile = relativizePath(fileMatch[1], input.projectRoot);
-        continue;
-      }
       const failMatch = BROWSER_FAIL_RE.exec(lines[i]);
-      if (!failMatch || !currentFile) continue;
-
+      if (!failMatch) continue;
       const symbol = failMatch[1].trim();
+      // The → message may appear after a large HTML dump — scan ahead up to 2000 lines
       let message = "";
-      if (i + 1 < lines.length) {
-        const msgMatch = BROWSER_MSG_RE.exec(lines[i + 1]);
-        if (msgMatch) message = msgMatch[1].trim();
+      for (let j = i + 1; j < Math.min(i + 2000, lines.length); j++) {
+        const msgMatch = BROWSER_MSG_RE.exec(lines[j]);
+        if (msgMatch) { message = msgMatch[1].trim(); break; }
+        // Stop if we hit the next test failure or file header
+        if (BROWSER_FAIL_RE.test(lines[j]) || BROWSER_FILE_RE.test(lines[j])) break;
+      }
+      failures.push({ symbol, message, idx: i });
+    }
+
+    // Second pass: for each failure, find its file from the nearest preceding ❯ |browser...| header
+    for (const { symbol, message } of failures) {
+      // Find file from BROWSER_FILE_RE headers — use the last header before this symbol appears
+      let file: string | null = null;
+      for (let j = 0; j < lines.length; j++) {
+        const fileMatch = BROWSER_FILE_RE.exec(lines[j]);
+        if (fileMatch) file = relativizePath(fileMatch[1], input.projectRoot);
+        // Check if this line contains the symbol (the × line)
+        if (BROWSER_FAIL_RE.test(lines[j]) && lines[j].includes(symbol.slice(0, 30))) break;
       }
       out.push({
-        file: currentFile,
+        file: file ?? "<unknown>",
         line: null,
         column: null,
         type: "error",
         message: message || symbol,
-        symbol
+        symbol,
+        ...(message ? { context: message } : {})
       });
     }
     return out;

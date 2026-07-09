@@ -56,11 +56,17 @@ console.log(`\n${summary.summary}`);
 if (summary.error_count > 0) {
   console.log(`\nTop groups:`);
   for (const g of summary.top_groups) {
-    console.log(`  ${g.symbol ?? "(no symbol)"} × ${g.count} (${g.files.length} file${g.files.length === 1 ? "" : "s"})`);
+    console.log(`  ${g.symbol ?? g.message} × ${g.count} (${g.files.length} file${g.files.length === 1 ? "" : "s"})`);
+    if (g.message && g.symbol && g.message !== g.symbol) {
+      console.log(`    → ${g.message}`);
+    }
     for (const occ of g.occurrences.slice(0, 3)) {
       console.log(`    ${occ.file}:${occ.line ?? "?"}:${occ.column ?? "?"}`);
     }
   }
+}
+if (summary.raw_tail) {
+  console.log(`\nOutput tail:\n${summary.raw_tail}`);
 }
 
 await client.close();

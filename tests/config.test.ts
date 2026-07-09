@@ -350,6 +350,37 @@ describe("parseConfig", () => {
     });
   });
 
+  describe("description field", () => {
+    it("accepts description on a single-cmd check", () => {
+      const cfg = parseConfig({
+        root: ".",
+        checks: { test: { cmd: "npx vitest run", description: "Unit tests only" } }
+      });
+      const c = cfg.checks.test;
+      if ("cmd" in c) expect(c.description).toBe("Unit tests only");
+    });
+
+    it("description is optional and defaults to undefined", () => {
+      const cfg = parseConfig({ root: ".", checks: { test: { cmd: "npx vitest run" } } });
+      const c = cfg.checks.test;
+      if ("cmd" in c) expect(c.description).toBeUndefined();
+    });
+
+    it("accepts description on a multi-step check", () => {
+      const cfg = parseConfig({
+        root: ".",
+        checks: {
+          ci: {
+            description: "Full CI pipeline",
+            steps: [{ name: "test", cmd: "pytest" }]
+          }
+        }
+      });
+      const c = cfg.checks.ci;
+      if ("steps" in c) expect((c as { description?: string }).description).toBe("Full CI pipeline");
+    });
+  });
+
   describe("structural", () => {
     it("rejects empty checks (no cmd, no steps)", () => {
       expect(() =>

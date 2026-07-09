@@ -52,7 +52,8 @@ const SingleCheckSchema = z
     adapter: ADAPTER.default("generic"),
     env: ENV.optional(),
     on_failure: z.string().min(1).optional(),
-    strip_path_prefix: z.string().min(1).optional()
+    strip_path_prefix: z.string().min(1).optional(),
+    description: z.string().optional()
   })
   .strict();
 
@@ -62,7 +63,8 @@ const MultiStepCheckSchema = z
     fail_fast: z.boolean().default(true),
     timeout_ms: z.number().int().positive().optional(),
     cwd: z.string().optional(),
-    env: ENV.optional()
+    env: ENV.optional(),
+    description: z.string().optional()
   })
   .strict()
   .refine(

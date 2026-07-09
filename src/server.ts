@@ -24,6 +24,7 @@ export function createServer(deps: ChecksDeps): McpServer {
             ? {
                 name,
                 kind: "multi-step" as const,
+                description: c.description,
                 fail_fast: c.fail_fast,
                 step_count: c.steps.length,
                 steps: c.steps.map((s) => ({
@@ -36,6 +37,7 @@ export function createServer(deps: ChecksDeps): McpServer {
             : {
                 name,
                 kind: "single" as const,
+                description: c.description,
                 cmd: c.cmd,
                 adapter: c.adapter,
                 timeout_ms: c.timeout_ms

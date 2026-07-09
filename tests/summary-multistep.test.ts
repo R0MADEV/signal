@@ -135,6 +135,32 @@ describe("summarizeRun for multi-step checks", () => {
     expect(s.top_groups[0].step).toBe("first");
   });
 
+  it("ignore_patterns on a step filters noise before parsing", async () => {
+    const deps: ChecksDeps = {
+      config: configWith({
+        pipeline: {
+          steps: [
+            {
+              name: "test",
+              cmd: `${NODE} -e "process.stdout.write('src/noise.ts:1:1: DeprecationWarning old\\nsrc/a.ts:2:1: real error\\n'); process.exit(1);"`,
+              timeout_ms: 5_000,
+              adapter: "generic",
+              ignore_patterns: ["DeprecationWarning"]
+            }
+          ],
+          fail_fast: true
+        }
+      }),
+      storage,
+      runner
+    };
+    const r = startCheck(deps, { name: "pipeline" });
+    await r.done;
+    const s = summarizeRun(deps, { run_id: r.run_id });
+    expect(s.error_count).toBe(1);
+    expect(s.top_groups[0].message).toContain("real error");
+  });
+
   it("does NOT add step field when single-cmd check (backward compat)", async () => {
     const deps: ChecksDeps = {
       config: configWith({

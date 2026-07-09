@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Storage } from "../src/storage.js";
 import { Runner } from "../src/runner.js";
-import { startCheck, getRunStatus, listRuns, runCheck, runChecks, type ChecksDeps } from "../src/checks.js";
+import { startCheck, getRunStatus, listRuns, runCheck, runChecks, startChecks, type ChecksDeps } from "../src/checks.js";
 import type { Config } from "../src/config.js";
 
 const NODE = JSON.stringify(process.execPath);
@@ -147,6 +147,21 @@ describe("runChecks", () => {
     const results = await runChecks(deps, { names: ["echo", "echo"] });
     expect(results).toHaveLength(2);
     expect(results[0].run_id).not.toBe(results[1].run_id);
+  });
+});
+
+describe("startChecks", () => {
+  it("starts multiple checks and returns run_ids immediately", () => {
+    const results = startChecks(deps, { names: ["echo", "slow"] });
+    expect(results).toHaveLength(2);
+    expect(results.every(r => r.status === "running")).toBe(true);
+    expect(results[0].run_id).toContain("echo");
+    expect(results[1].run_id).toContain("slow");
+    return Promise.all(results.map(r => r.done));
+  });
+
+  it("rejects if any check name is unknown", () => {
+    expect(() => startChecks(deps, { names: ["echo", "nope"] })).toThrow(/Unknown check/);
   });
 });
 

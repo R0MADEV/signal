@@ -85,6 +85,13 @@ export async function runCheck(
   });
 }
 
+export function startChecks(
+  deps: ChecksDeps,
+  args: { names: string[] }
+): StartCheckResult[] {
+  return args.names.map(name => startCheck(deps, { name }));
+}
+
 export async function runChecks(
   deps: ChecksDeps,
   args: { names: string[]; max_groups?: number; max_occurrences?: number; max_wait_ms?: number }

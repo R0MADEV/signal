@@ -6,6 +6,7 @@ import type { ErrorGroup } from "./grouper.js";
 import { groupErrors } from "./grouper.js";
 import { isMultiStep } from "./config.js";
 import { parsers, type AdapterName, type ParsedError } from "./parsers/index.js";
+import { parseWithPattern } from "./parsers/pattern.js";
 
 export interface SummaryStep {
   name: string;
@@ -63,12 +64,11 @@ export function computeRunGroups(deps: ChecksDeps, run_id: string): RunGroups {
   }
 
   const checkCfg = deps.config.checks[meta.check];
-  const adapter: AdapterName =
-    checkCfg && !isMultiStep(checkCfg) ? checkCfg.adapter : "generic";
-  const stripPrefix =
-    checkCfg && !isMultiStep(checkCfg) ? checkCfg.strip_path_prefix : undefined;
-  const ignorePatterns =
-    checkCfg && !isMultiStep(checkCfg) ? checkCfg.ignore_patterns : undefined;
+  const isSingle = checkCfg && !isMultiStep(checkCfg);
+  const adapter: AdapterName = isSingle ? checkCfg.adapter : "generic";
+  const stripPrefix = isSingle ? checkCfg.strip_path_prefix : undefined;
+  const ignorePatterns = isSingle ? checkCfg.ignore_patterns : undefined;
+  const pattern = isSingle ? checkCfg.pattern : undefined;
   const paths = deps.storage.pathsFor(run_id);
   const stdout = filterLines(readFileSync(paths.stdout, "utf8"), ignorePatterns);
   const stderr = filterLines(readFileSync(paths.stderr, "utf8"), ignorePatterns);
@@ -76,7 +76,9 @@ export function computeRunGroups(deps: ChecksDeps, run_id: string): RunGroups {
   let errors: ParsedError[];
   let parse_error: string | undefined;
   try {
-    errors = parsers[adapter].parse({ stdout, stderr, projectRoot });
+    errors = pattern
+      ? parseWithPattern({ stdout, stderr, projectRoot }, pattern)
+      : parsers[adapter].parse({ stdout, stderr, projectRoot });
   } catch (e) {
     parse_error = (e as Error).message;
     errors = [];
@@ -118,10 +120,14 @@ function computeMultiStepGroups(
   const checkCfg = deps.config.checks[meta.check];
   const stepAdapters: Record<string, AdapterName> = {};
   const stepStripPrefix: Record<string, string | undefined> = {};
+  const stepIgnorePatterns: Record<string, string[] | undefined> = {};
+  const stepPattern: Record<string, string | undefined> = {};
   if (checkCfg && isMultiStep(checkCfg)) {
     for (const s of checkCfg.steps) {
       stepAdapters[s.name] = s.adapter;
       stepStripPrefix[s.name] = s.strip_path_prefix;
+      stepIgnorePatterns[s.name] = s.ignore_patterns;
+      stepPattern[s.name] = s.pattern;
     }
   }
 
@@ -136,13 +142,17 @@ function computeMultiStepGroups(
 
     const adapter: AdapterName = stepAdapters[step.name] ?? "generic";
     const stripPrefix = stepStripPrefix[step.name];
+    const ignorePatterns = stepIgnorePatterns[step.name];
+    const pattern = stepPattern[step.name];
     const stepPaths = deps.storage.pathsForStep(meta.run_id, i);
-    const stdout = readFileSync(stepPaths.stdout, "utf8");
-    const stderr = readFileSync(stepPaths.stderr, "utf8");
+    const stdout = filterLines(readFileSync(stepPaths.stdout, "utf8"), ignorePatterns);
+    const stderr = filterLines(readFileSync(stepPaths.stderr, "utf8"), ignorePatterns);
 
     let stepErrors: ParsedError[] = [];
     try {
-      stepErrors = parsers[adapter].parse({ stdout, stderr, projectRoot });
+      stepErrors = pattern
+        ? parseWithPattern({ stdout, stderr, projectRoot }, pattern)
+        : parsers[adapter].parse({ stdout, stderr, projectRoot });
     } catch (e) {
       const msg = `step '${step.name}' (${adapter}): ${(e as Error).message}`;
       parse_error = parse_error ? `${parse_error}; ${msg}` : msg;

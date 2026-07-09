@@ -1,6 +1,6 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { startCheck, getRunStatus, listRuns, runCheck, runChecks, type ChecksDeps } from "./checks.js";
+import { startCheck, getRunStatus, listRuns, runCheck, runChecks, startChecks, type ChecksDeps } from "./checks.js";
 import { isMultiStep } from "./config.js";
 import { summarizeRun } from "./summary.js";
 import { diffRuns } from "./diff.js";
@@ -58,6 +58,25 @@ export function createServer(deps: ChecksDeps): McpServer {
           console.error(`[signal-mcp] run ${result.run_id} rejected:`, err);
         });
       return textJson({ run_id: result.run_id, status: result.status });
+    }
+  );
+
+  server.tool(
+    "start_checks",
+    "Start multiple checks in parallel asynchronously. Returns run_ids immediately without waiting. Poll each with get_run_status. Use for long-running checks (e2e, behat) you don't want to block on.",
+    { names: z.array(z.string().min(1)).min(1) },
+    async ({ names }) => {
+      const results = startChecks(deps, { names });
+      for (const r of results) {
+        r.done
+          .then(() => applyRetention(deps.storage, DEFAULT_RETENTION))
+          .catch((err) => {
+            console.error(`[signal-mcp] run ${r.run_id} rejected:`, err);
+          });
+      }
+      return textJson({
+        runs: results.map(r => ({ run_id: r.run_id, status: r.status }))
+      });
     }
   );
 

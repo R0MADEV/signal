@@ -130,6 +130,7 @@ If a variable is not set, the literal `${VAR}` is kept unchanged. Variables with
 | `run_check` | Run a check and return the compact summary directly — no polling needed |
 | `run_checks` | Run multiple checks **in parallel** and return all summaries at once |
 | `start_check` | Start a check asynchronously. Returns `run_id` immediately |
+| `start_checks` | Start multiple checks in parallel asynchronously. Returns all `run_id`s immediately — poll each with `get_run_status`. Use for long-running checks you don't want to block on |
 | `get_run_status` | Get the status of a running or finished check |
 | `get_run_summary` | Compact diagnostic: error groups with file/line occurrences |
 | `diff_runs` | Compare two runs by fingerprint — shows what was fixed, what's new, what persists |
@@ -239,6 +240,32 @@ Adding an adapter is ~30–50 lines + tests. The interface is:
 parse({ stdout, stderr, projectRoot }): ParsedError[]
 ```
 
+### Custom regex pattern (no adapter needed)
+
+For a tool with a format no adapter covers, set a `pattern` — a regex with named groups. It overrides the adapter entirely:
+
+```json
+{
+  "cmd": "my-custom-tool",
+  "pattern": "ERROR \\[(?<file>[^:]+):(?<line>\\d+):(?<col>\\d+)\\] (?<message>.+)"
+}
+```
+
+Supported named groups: `file`, `line`, `col` (or `column`), `message`, `symbol`. Without named groups, the first capture group (or the whole match) becomes the message. Each matching line is one error.
+
+### Filtering noise with `ignore_patterns`
+
+Some tools flood the output with deprecation warnings or info lines. `ignore_patterns` (an array of regexes) strips matching lines **before** parsing:
+
+```json
+{
+  "cmd": "npx vitest run",
+  "ignore_patterns": ["DeprecationWarning", "ExperimentalWarning", "node:internal"]
+}
+```
+
+Both `pattern` and `ignore_patterns` work on single-command checks and per-step in multi-step pipelines.
+
 ## Fingerprint algorithm
 
 Errors are grouped by a 12-character SHA1 fingerprint:
@@ -279,6 +306,8 @@ Runs are cleaned up automatically after each execution: the last 20 runs per che
 | `strip_path_prefix` | string | — | Strip this prefix from file paths in errors (useful for Docker paths) |
 | `on_failure` | string | — | Command to run after a failure to capture extra context |
 | `description` | string | — | Human-readable description shown in `list_checks` — helps the agent pick the right check |
+| `pattern` | string | — | Custom regex with named groups (`file`, `line`, `col`, `message`, `symbol`) — overrides the adapter |
+| `ignore_patterns` | string[] | — | Regexes to strip matching lines before parsing (filter deprecation warnings, noise) |
 
 ### Per-check fields (multi-step)
 

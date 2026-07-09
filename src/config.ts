@@ -40,7 +40,9 @@ const StepSchema = z
     adapter: ADAPTER.default("generic"),
     env: ENV.optional(),
     on_failure: z.string().min(1).optional(),
-    strip_path_prefix: z.string().min(1).optional()
+    strip_path_prefix: z.string().min(1).optional(),
+    ignore_patterns: z.array(z.string()).optional(),
+    pattern: z.string().min(1).optional()
   })
   .strict();
 
@@ -54,7 +56,8 @@ const SingleCheckSchema = z
     on_failure: z.string().min(1).optional(),
     strip_path_prefix: z.string().min(1).optional(),
     description: z.string().optional(),
-    ignore_patterns: z.array(z.string()).optional()
+    ignore_patterns: z.array(z.string()).optional(),
+    pattern: z.string().min(1).optional()
   })
   .strict();
 

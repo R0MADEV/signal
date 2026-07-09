@@ -67,9 +67,11 @@ export function computeRunGroups(deps: ChecksDeps, run_id: string): RunGroups {
     checkCfg && !isMultiStep(checkCfg) ? checkCfg.adapter : "generic";
   const stripPrefix =
     checkCfg && !isMultiStep(checkCfg) ? checkCfg.strip_path_prefix : undefined;
+  const ignorePatterns =
+    checkCfg && !isMultiStep(checkCfg) ? checkCfg.ignore_patterns : undefined;
   const paths = deps.storage.pathsFor(run_id);
-  const stdout = readFileSync(paths.stdout, "utf8");
-  const stderr = readFileSync(paths.stderr, "utf8");
+  const stdout = filterLines(readFileSync(paths.stdout, "utf8"), ignorePatterns);
+  const stderr = filterLines(readFileSync(paths.stderr, "utf8"), ignorePatterns);
 
   let errors: ParsedError[];
   let parse_error: string | undefined;
@@ -90,6 +92,15 @@ export function computeRunGroups(deps: ChecksDeps, run_id: string): RunGroups {
     errors_count: errors.length,
     parse_error
   };
+}
+
+function filterLines(text: string, patterns: string[] | undefined): string {
+  if (!patterns || patterns.length === 0) return text;
+  const regexes = patterns.map(p => new RegExp(p));
+  return text
+    .split("\n")
+    .filter(line => !regexes.some(re => re.test(line)))
+    .join("\n");
 }
 
 function stripPathPrefix(p: string, prefix: string): string {

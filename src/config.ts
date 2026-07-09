@@ -53,7 +53,8 @@ const SingleCheckSchema = z
     env: ENV.optional(),
     on_failure: z.string().min(1).optional(),
     strip_path_prefix: z.string().min(1).optional(),
-    description: z.string().optional()
+    description: z.string().optional(),
+    ignore_patterns: z.array(z.string()).optional()
   })
   .strict();
 

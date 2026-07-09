@@ -156,6 +156,46 @@ describe("summarizeRun", () => {
     expect(s.top_groups).toEqual([]);
   });
 
+  it("ignore_patterns filters lines that would otherwise be parsed", async () => {
+    deps.config.checks.noisy = {
+      cmd: `${NODE} -e "process.stdout.write('src/noise.ts:10:1: DeprecationWarning old api\\nsrc/a.ts:1:1: real error\\n')"`,
+      timeout_ms: 5_000,
+      adapter: "generic",
+      ignore_patterns: ["DeprecationWarning"]
+    };
+    const r = startCheck(deps, { name: "noisy" });
+    await r.done;
+    const s = summarizeRun(deps, { run_id: r.run_id });
+    expect(s.error_count).toBe(1);
+    expect(s.top_groups[0].message).toContain("real error");
+  });
+
+  it("ignore_patterns without filter captures both lines", async () => {
+    deps.config.checks.noisy2 = {
+      cmd: `${NODE} -e "process.stdout.write('src/noise.ts:10:1: DeprecationWarning old api\\nsrc/a.ts:1:1: real error\\n')"`,
+      timeout_ms: 5_000,
+      adapter: "generic"
+    };
+    const r = startCheck(deps, { name: "noisy2" });
+    await r.done;
+    const s = summarizeRun(deps, { run_id: r.run_id });
+    expect(s.error_count).toBe(2);
+  });
+
+  it("ignore_patterns supports regex syntax", async () => {
+    deps.config.checks.regexnoisy = {
+      cmd: `${NODE} -e "process.stdout.write('src/old.ts:5:1: ExperimentalWarning vm modules\\nsrc/b.ts:2:1: another error\\n')"`,
+      timeout_ms: 5_000,
+      adapter: "generic",
+      ignore_patterns: ["ExperimentalWarning"]
+    };
+    const r = startCheck(deps, { name: "regexnoisy" });
+    await r.done;
+    const s = summarizeRun(deps, { run_id: r.run_id });
+    expect(s.error_count).toBe(1);
+    expect(s.top_groups[0].message).toContain("another error");
+  });
+
   it("filters out warnings when severity=error", async () => {
     deps.config.checks.mixed = {
       cmd: `${NODE} -e "process.stdout.write('src/a.ts(1,1): error TS1: boom\\nsrc/b.ts(2,2): warning TS2: heads up\\n')"`,

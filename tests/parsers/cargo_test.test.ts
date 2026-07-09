@@ -80,6 +80,56 @@ describe("parseCargoTest", () => {
     });
   });
 
+  it("parses the NEW rust panic format (file:line:col: then message on next line)", () => {
+    // Rust 1.65+ changed the panic format: location comes after 'panicked at'
+    // without quotes, ending in ':', and the message is on the following line(s).
+    const stdout = [
+      "running 5 tests",
+      "test runs_every_step_of_a_custom_pipeline_in_order ... FAILED",
+      "",
+      "failures:",
+      "",
+      "---- runs_every_step_of_a_custom_pipeline_in_order stdout ----",
+      "thread 'runs_every_step_of_a_custom_pipeline_in_order' (26054373) panicked at tests/tdd_workflow_engine.rs:58:5:",
+      "assertion `left == right` failed",
+      "  left: [\"search_code\", \"analyze\", \"critique\"]",
+      " right: [\"SIGNAL_VALIDATION_FAIL\"]",
+      "",
+      "failures:",
+      "    runs_every_step_of_a_custom_pipeline_in_order",
+      "",
+      "test result: FAILED. 4 passed; 1 failed"
+    ].join("\n");
+    const out = parseCargoTest({ stdout, stderr: "", projectRoot: ROOT });
+    expect(out).toHaveLength(1);
+    expect(out[0]).toMatchObject({
+      file: "tests/tdd_workflow_engine.rs",
+      line: 58,
+      column: 5,
+      type: "error",
+      symbol: "runs_every_step_of_a_custom_pipeline_in_order",
+      message: "assertion `left == right` failed"
+    });
+  });
+
+  it("parses the new panic format without a thread id", () => {
+    const stdout = [
+      "---- my_test stdout ----",
+      "thread 'my_test' panicked at src/lib.rs:10:5:",
+      "something broke",
+      "",
+      "failures:",
+      "    my_test"
+    ].join("\n");
+    const out = parseCargoTest({ stdout, stderr: "", projectRoot: ROOT });
+    expect(out).toHaveLength(1);
+    expect(out[0]).toMatchObject({
+      file: "src/lib.rs",
+      line: 10,
+      message: "something broke"
+    });
+  });
+
   it("parses assertion left/right failure format", () => {
     const stdout = [
       "---- db::tests::is_safe_ident stdout ----",

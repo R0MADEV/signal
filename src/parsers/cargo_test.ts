@@ -8,14 +8,15 @@ export function buildCargoTestRerunCmd(originalCmd: string, group: RerunGroup): 
 
 // "---- module::tests::test_name stdout ----"
 const SECTION_RE = /^---- (.+?) stdout ----$/;
-// "thread '...' panicked at 'message', src/file.rs:line:col"
+// OLD format (Rust < 1.65): "thread '...' panicked at 'message', src/file.rs:line:col"
 const PANIC_SINGLE_RE = /^thread '.+?' panicked at '(.+)', (.+\.rs):(\d+):(\d+)$/;
-// "thread '...' panicked at 'message  (multiline continues on next lines)', src/file.rs:line:col"
-// The multiline form ends with "', src/file.rs:line:col"
+// OLD multiline form ends with "', src/file.rs:line:col"
 const PANIC_LOC_RE = /^(.+)', (.+\.rs):(\d+):(\d+)$/;
-// "failures:\n    module::tests::test_name"
+// NEW format (Rust >= 1.65): "thread '...' panicked at src/file.rs:line:col:" then message on next line
+const PANIC_NEW_RE = /^thread '.+?'(?:\s+\(\S+\))?\s+panicked at (.+\.rs):(\d+):(\d+):$/;
+// "failures:\n    module::tests::test_name" (unit tests) or "    integration_test_name" (no ::)
 const FAILURES_LIST_RE = /^failures:\s*$/;
-const FAILURE_ITEM_RE = /^\s{4}(\S+::\S+)\s*$/;
+const FAILURE_ITEM_RE = /^\s{4}(\S+)\s*$/;
 
 export function parseCargoTest(input: ParserInput): ParsedError[] {
   const combined =
@@ -45,7 +46,16 @@ export function parseCargoTest(input: ParserInput): ParsedError[] {
     const msgLines: string[] = [];
 
     while (i < lines.length && !SECTION_RE.test(lines[i]) && !FAILURES_LIST_RE.test(lines[i])) {
-      // Single-line panic: panicked at 'msg', file:line:col
+      // NEW format (Rust >= 1.65): location on the panic line, message on the next line(s)
+      const newMatch = PANIC_NEW_RE.exec(lines[i]);
+      if (newMatch) {
+        file = newMatch[1];
+        line = parseInt(newMatch[2], 10);
+        column = parseInt(newMatch[3], 10);
+        message = i + 1 < lines.length ? lines[i + 1].trim() : "";
+        break;
+      }
+      // OLD single-line panic: panicked at 'msg', file:line:col
       const singleMatch = PANIC_SINGLE_RE.exec(lines[i]);
       if (singleMatch) {
         message = singleMatch[1];
@@ -54,8 +64,8 @@ export function parseCargoTest(input: ParserInput): ParsedError[] {
         column = parseInt(singleMatch[4], 10);
         break;
       }
-      // Multi-line panic: last line of message ends with "', file:line:col"
-      if (lines[i].startsWith("thread '") && lines[i].includes("panicked at")) {
+      // OLD multi-line panic: last line of message ends with "', file:line:col"
+      if (lines[i].startsWith("thread '") && lines[i].includes("panicked at '")) {
         // collect until we find the loc line
         const start = lines[i].indexOf("panicked at '") + "panicked at '".length;
         msgLines.push(lines[i].slice(start));
@@ -88,13 +98,18 @@ export function parseCargoTest(input: ParserInput): ParsedError[] {
   let inFailuresList = false;
   for (const line of lines) {
     if (FAILURES_LIST_RE.test(line)) { inFailuresList = true; continue; }
-    if (inFailuresList) {
-      const itemMatch = FAILURE_ITEM_RE.exec(line);
-      if (itemMatch) {
-        failedTests.push(itemMatch[1]);
-      } else if (line.trim() === "" && failedTests.length > 0) {
-        break;
-      }
+    if (!inFailuresList) continue;
+
+    const itemMatch = FAILURE_ITEM_RE.exec(line);
+    if (itemMatch) {
+      failedTests.push(itemMatch[1]);
+    } else if (line.trim() === "") {
+      // blank line after collecting names ends the list
+      if (failedTests.length > 0) break;
+    } else {
+      // a non-blank, non-item line means this 'failures:' was the stdout-section
+      // header (followed by '---- ... ----'), not the final name list — reset.
+      inFailuresList = false;
     }
   }
 

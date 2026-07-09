@@ -1,5 +1,12 @@
-import type { ParsedError, ParserInput } from "./types.js";
+import type { ParsedError, ParserInput, RerunGroup } from "./types.js";
 import { relativizePath } from "./util.js";
+
+export function buildBunTestRerunCmd(originalCmd: string, group: RerunGroup): string | null {
+  const file = group.occurrences[0]?.file ?? group.files[0];
+  if (!file) return null;
+  if (!group.symbol) return `${originalCmd} ${file}`;
+  return `${originalCmd} --test-name-pattern "${group.symbol}" ${file}`;
+}
 
 const FAIL_RE = /^\s*✗\s+(.+)$/;
 const FILE_HEADER_RE = /^([^\s].+\.(?:ts|tsx|js|jsx|mts|cts)):$/;

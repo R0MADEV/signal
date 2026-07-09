@@ -1,4 +1,9 @@
-import type { ParsedError, ParserInput } from "./types.js";
+import type { ParsedError, ParserInput, RerunGroup } from "./types.js";
+
+export function buildGoTestRerunCmd(originalCmd: string, group: RerunGroup): string | null {
+  if (!group.symbol) return null;
+  return `${originalCmd} -run "${group.symbol}" -v`;
+}
 
 const FAIL_RE = /^--- FAIL: (.+?) \(\d+\.\d+s\)$/;
 const MSG_LINE_RE = /^\s+(\S+_test\.go):(\d+): (.+)$/;

@@ -123,4 +123,163 @@ describe("buildRerunCmd per adapter", () => {
       expect(parsers.generic.buildRerunCmd).toBeUndefined();
     });
   });
+
+  describe("pytest", () => {
+    it("appends file::symbol -v to the cmd", () => {
+      const g = group({
+        symbol: "TestAuth::test_login",
+        files: ["tests/unit/test_auth.py"],
+        occurrences: [{ file: "tests/unit/test_auth.py", line: 42, column: null }]
+      });
+      const out = parsers.pytest.buildRerunCmd!("uv run pytest", g);
+      expect(out).toBe("uv run pytest tests/unit/test_auth.py::TestAuth::test_login -v");
+    });
+
+    it("returns null when no symbol", () => {
+      const g = group({ files: ["tests/test_foo.py"], occurrences: [] });
+      expect(parsers.pytest.buildRerunCmd!("pytest", g)).toBeNull();
+    });
+  });
+
+  describe("jest", () => {
+    it("appends --testPathPattern and --testNamePattern", () => {
+      const g = group({
+        symbol: "AuthService › login › should return a token",
+        files: ["src/auth/AuthService.test.ts"],
+        occurrences: [{ file: "src/auth/AuthService.test.ts", line: 42, column: 5 }]
+      });
+      const out = parsers.jest.buildRerunCmd!("npx jest", g);
+      expect(out).toBe('npx jest --testPathPattern="src/auth/AuthService.test.ts" --testNamePattern="should return a token"');
+    });
+
+    it("falls back to file only when no symbol", () => {
+      const g = group({ files: ["src/foo.test.ts"], occurrences: [] });
+      const out = parsers.jest.buildRerunCmd!("npx jest", g);
+      expect(out).toBe('npx jest --testPathPattern="src/foo.test.ts"');
+    });
+  });
+
+  describe("rspec", () => {
+    it("appends file:line to the cmd", () => {
+      const g = group({
+        symbol: "User#full_name returns the full name",
+        files: ["spec/models/user_spec.rb"],
+        occurrences: [{ file: "spec/models/user_spec.rb", line: 15, column: null }]
+      });
+      const out = parsers.rspec.buildRerunCmd!("bundle exec rspec", g);
+      expect(out).toBe("bundle exec rspec spec/models/user_spec.rb:15");
+    });
+
+    it("appends file only when no line", () => {
+      const g = group({
+        files: ["spec/models/user_spec.rb"],
+        occurrences: [{ file: "spec/models/user_spec.rb", line: null, column: null }]
+      });
+      const out = parsers.rspec.buildRerunCmd!("bundle exec rspec", g);
+      expect(out).toBe("bundle exec rspec spec/models/user_spec.rb");
+    });
+  });
+
+  describe("go_test", () => {
+    it("appends -run symbol -v to the cmd", () => {
+      const g = group({
+        symbol: "TestAuth/login",
+        files: ["auth_test.go"],
+        occurrences: [{ file: "auth_test.go", line: 42, column: null }]
+      });
+      const out = parsers.go_test.buildRerunCmd!("go test ./...", g);
+      expect(out).toBe('go test ./... -run "TestAuth/login" -v');
+    });
+
+    it("returns null when no symbol", () => {
+      const g = group({ files: ["foo_test.go"], occurrences: [] });
+      expect(parsers.go_test.buildRerunCmd!("go test ./...", g)).toBeNull();
+    });
+  });
+
+  describe("cargo_test", () => {
+    it("appends the symbol (test path) to cargo test", () => {
+      const g = group({
+        symbol: "vault::tests::encrypt_decrypt_roundtrip",
+        files: ["src/vault.rs"],
+        occurrences: [{ file: "src/vault.rs", line: 142, column: null }]
+      });
+      const out = parsers.cargo_test.buildRerunCmd!("cargo test", g);
+      expect(out).toBe("cargo test vault::tests::encrypt_decrypt_roundtrip");
+    });
+
+    it("returns null when no symbol", () => {
+      const g = group({ files: ["src/foo.rs"], occurrences: [] });
+      expect(parsers.cargo_test.buildRerunCmd!("cargo test", g)).toBeNull();
+    });
+  });
+
+  describe("mocha", () => {
+    it("appends --grep with last part of symbol and file", () => {
+      const g = group({
+        symbol: "Auth login should return a token",
+        files: ["test/auth.test.js"],
+        occurrences: [{ file: "test/auth.test.js", line: 15, column: null }]
+      });
+      const out = parsers.mocha.buildRerunCmd!("npx mocha", g);
+      expect(out).toBe('npx mocha --grep "Auth login should return a token" test/auth.test.js');
+    });
+
+    it("returns null when no file", () => {
+      const g = group({ symbol: "foo", files: [], occurrences: [] });
+      expect(parsers.mocha.buildRerunCmd!("mocha", g)).toBeNull();
+    });
+  });
+
+  describe("bun_test", () => {
+    it("appends --test-name-pattern and file", () => {
+      const g = group({
+        symbol: "subtracts numbers",
+        files: ["src/foo.test.ts"],
+        occurrences: [{ file: "src/foo.test.ts", line: 10, column: null }]
+      });
+      const out = parsers.bun_test.buildRerunCmd!("bun test", g);
+      expect(out).toBe('bun test --test-name-pattern "subtracts numbers" src/foo.test.ts');
+    });
+
+    it("returns null when no file", () => {
+      const g = group({ symbol: "foo", files: [], occurrences: [] });
+      expect(parsers.bun_test.buildRerunCmd!("bun test", g)).toBeNull();
+    });
+  });
+
+  describe("playwright", () => {
+    it("appends file and --grep with last segment of symbol", () => {
+      const g = group({
+        symbol: "Login › should show error on wrong password",
+        files: ["auth/login.spec.ts"],
+        occurrences: [{ file: "auth/login.spec.ts", line: 25, column: null }]
+      });
+      const out = parsers.playwright.buildRerunCmd!("npx playwright test", g);
+      expect(out).toBe('npx playwright test auth/login.spec.ts --grep "should show error on wrong password"');
+    });
+
+    it("falls back to file only when no symbol", () => {
+      const g = group({ files: ["auth/login.spec.ts"], occurrences: [] });
+      const out = parsers.playwright.buildRerunCmd!("npx playwright test", g);
+      expect(out).toBe("npx playwright test auth/login.spec.ts");
+    });
+  });
+
+  describe("cypress", () => {
+    it("appends --spec with the file", () => {
+      const g = group({
+        symbol: "Login › should redirect after login",
+        files: ["cypress/e2e/auth/login.cy.ts"],
+        occurrences: [{ file: "cypress/e2e/auth/login.cy.ts", line: 25, column: null }]
+      });
+      const out = parsers.cypress.buildRerunCmd!("npx cypress run", g);
+      expect(out).toBe('npx cypress run --spec "cypress/e2e/auth/login.cy.ts"');
+    });
+
+    it("returns null when no file", () => {
+      const g = group({ files: [], occurrences: [] });
+      expect(parsers.cypress.buildRerunCmd!("npx cypress run", g)).toBeNull();
+    });
+  });
 });

@@ -9,17 +9,17 @@ import { parseBehat, buildBehatRerunCmd } from "./behat.js";
 import { parseJunit, buildJunitRerunCmd } from "./junit.js";
 import { parsePhpspec, buildPhpspecRerunCmd } from "./phpspec.js";
 import { parseSymfonyLog } from "./symfony_log.js";
-import { parsePytest } from "./pytest.js";
+import { parsePytest, buildPytestRerunCmd } from "./pytest.js";
 import { parseBiome } from "./biome.js";
 import { parseJsonLog } from "./json_log.js";
-import { parseBunTest } from "./bun_test.js";
-import { parseJest } from "./jest.js";
-import { parseCypress } from "./cypress.js";
-import { parsePlaywright } from "./playwright.js";
-import { parseRspec } from "./rspec.js";
-import { parseGoTest } from "./go_test.js";
-import { parseCargoTest } from "./cargo_test.js";
-import { parseMocha } from "./mocha.js";
+import { parseBunTest, buildBunTestRerunCmd } from "./bun_test.js";
+import { parseJest, buildJestRerunCmd } from "./jest.js";
+import { parseCypress, buildCypressRerunCmd } from "./cypress.js";
+import { parsePlaywright, buildPlaywrightRerunCmd } from "./playwright.js";
+import { parseRspec, buildRspecRerunCmd } from "./rspec.js";
+import { parseGoTest, buildGoTestRerunCmd } from "./go_test.js";
+import { parseCargoTest, buildCargoTestRerunCmd } from "./cargo_test.js";
+import { parseMocha, buildMochaRerunCmd } from "./mocha.js";
 import { parseCargoClipy } from "./cargo_clippy.js";
 import { parseRubocop } from "./rubocop.js";
 
@@ -59,17 +59,17 @@ export const parsers: Record<AdapterName, Parser> = {
   junit: { name: "junit", parse: parseJunit, buildRerunCmd: buildJunitRerunCmd },
   phpspec: { name: "phpspec", parse: parsePhpspec, buildRerunCmd: buildPhpspecRerunCmd },
   symfony_log: { name: "symfony_log", parse: parseSymfonyLog },
-  pytest: { name: "pytest", parse: parsePytest },
+  pytest: { name: "pytest", parse: parsePytest, buildRerunCmd: buildPytestRerunCmd },
   biome: { name: "biome", parse: parseBiome },
   json_log: { name: "json_log", parse: parseJsonLog },
-  bun_test: { name: "bun_test", parse: parseBunTest },
-  jest: { name: "jest", parse: parseJest },
-  cypress: { name: "cypress", parse: parseCypress },
-  playwright: { name: "playwright", parse: parsePlaywright },
-  rspec: { name: "rspec", parse: parseRspec },
-  go_test: { name: "go_test", parse: parseGoTest },
-  cargo_test: { name: "cargo_test", parse: parseCargoTest },
-  mocha: { name: "mocha", parse: parseMocha },
+  bun_test: { name: "bun_test", parse: parseBunTest, buildRerunCmd: buildBunTestRerunCmd },
+  jest: { name: "jest", parse: parseJest, buildRerunCmd: buildJestRerunCmd },
+  cypress: { name: "cypress", parse: parseCypress, buildRerunCmd: buildCypressRerunCmd },
+  playwright: { name: "playwright", parse: parsePlaywright, buildRerunCmd: buildPlaywrightRerunCmd },
+  rspec: { name: "rspec", parse: parseRspec, buildRerunCmd: buildRspecRerunCmd },
+  go_test: { name: "go_test", parse: parseGoTest, buildRerunCmd: buildGoTestRerunCmd },
+  cargo_test: { name: "cargo_test", parse: parseCargoTest, buildRerunCmd: buildCargoTestRerunCmd },
+  mocha: { name: "mocha", parse: parseMocha, buildRerunCmd: buildMochaRerunCmd },
   cargo_clippy: { name: "cargo_clippy", parse: parseCargoClipy },
   rubocop: { name: "rubocop", parse: parseRubocop }
 };

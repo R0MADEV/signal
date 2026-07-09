@@ -1,5 +1,13 @@
-import type { ParsedError, ParserInput } from "./types.js";
+import type { ParsedError, ParserInput, RerunGroup } from "./types.js";
 import { relativizePath } from "./util.js";
+
+export function buildPlaywrightRerunCmd(originalCmd: string, group: RerunGroup): string | null {
+  const file = group.occurrences[0]?.file ?? group.files[0];
+  if (!file) return null;
+  if (!group.symbol) return `${originalCmd} ${file}`;
+  const lastSeg = group.symbol.split(" › ").pop()!.trim();
+  return `${originalCmd} ${file} --grep "${lastSeg}"`;
+}
 
 // "  1) [chromium] › auth/login.spec.ts:25:5 › Login › should show error ───"
 const FAIL_HEADER_RE = /^\s+\d+\)\s+\[[^\]]+\]\s+›\s+(.+?):(\d+):(\d+)\s+›\s+(.+?)\s*─*\s*$/;

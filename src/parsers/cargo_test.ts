@@ -1,4 +1,9 @@
-import type { ParsedError, ParserInput } from "./types.js";
+import type { ParsedError, ParserInput, RerunGroup } from "./types.js";
+
+export function buildCargoTestRerunCmd(originalCmd: string, group: RerunGroup): string | null {
+  if (!group.symbol) return null;
+  return `${originalCmd} ${group.symbol}`;
+}
 
 // "---- module::tests::test_name stdout ----"
 const SECTION_RE = /^---- (.+?) stdout ----$/;

@@ -1,5 +1,13 @@
-import type { ParsedError, ParserInput } from "./types.js";
+import type { ParsedError, ParserInput, RerunGroup } from "./types.js";
 import { relativizePath } from "./util.js";
+
+export function buildJestRerunCmd(originalCmd: string, group: RerunGroup): string | null {
+  const file = group.occurrences[0]?.file ?? group.files[0];
+  if (!file) return null;
+  if (!group.symbol) return `${originalCmd} --testPathPattern="${file}"`;
+  const lastSeg = group.symbol.split(" › ").pop()!.trim();
+  return `${originalCmd} --testPathPattern="${file}" --testNamePattern="${lastSeg}"`;
+}
 
 const FAIL_FILE_RE = /^FAIL\s+(.+)$/;
 const TEST_NAME_RE = /^\s+●\s+(.+)$/;

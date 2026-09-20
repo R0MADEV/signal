@@ -3,7 +3,7 @@ import { mkdtempSync, rmSync, existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Storage } from "../src/storage.js";
-import { applyRetention } from "../src/retention.js";
+import { applyRetention, shouldDiscardRun } from "../src/retention.js";
 
 let root: string;
 let storage: Storage;
@@ -133,5 +133,26 @@ describe("applyRetention", () => {
     createRun("foo");
     const result = applyRetention(storage, { max_runs_per_check: 100 });
     expect(result.removed).toBe(0);
+  });
+});
+
+describe("shouldDiscardRun", () => {
+  it("discards a finished run that succeeded — the summary already carries everything", () => {
+    expect(shouldDiscardRun({ status: "completed", exit_code: 0 })).toBe(true);
+  });
+
+  it("keeps a finished run that failed, so the agent can still drill into it", () => {
+    expect(shouldDiscardRun({ status: "completed", exit_code: 1 })).toBe(false);
+    expect(shouldDiscardRun({ status: "failed", exit_code: 2 })).toBe(false);
+    expect(shouldDiscardRun({ status: "timeout", exit_code: null })).toBe(false);
+    expect(shouldDiscardRun({ status: "killed", exit_code: null })).toBe(false);
+  });
+
+  it("keeps a run that is still going", () => {
+    expect(shouldDiscardRun({ status: "running", exit_code: null })).toBe(false);
+  });
+
+  it("keeps a finished run with an unknown exit code", () => {
+    expect(shouldDiscardRun({ status: "completed", exit_code: null })).toBe(false);
   });
 });

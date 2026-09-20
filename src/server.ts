@@ -5,7 +5,7 @@ import { isMultiStep } from "./config.js";
 import { summarizeRun } from "./summary.js";
 import { diffRuns } from "./diff.js";
 import { rerunFailed } from "./rerun.js";
-import { applyRetention, DEFAULT_RETENTION } from "./retention.js";
+import { applyRetention, DEFAULT_RETENTION, shouldDiscardRun } from "./retention.js";
 
 export function createServer(deps: ChecksDeps): McpServer {
   const server = new McpServer({
@@ -92,7 +92,7 @@ export function createServer(deps: ChecksDeps): McpServer {
     },
     async ({ name, max_groups, max_occurrences, max_wait_ms, severity }) => {
       const summary = await runCheck(deps, { name, max_groups, max_occurrences, max_wait_ms });
-      if (summary.status !== "running") {
+      if (shouldDiscardRun(summary)) {
         deps.storage.deleteRun(summary.run_id);
       }
       return textJson(summary);
@@ -113,7 +113,7 @@ export function createServer(deps: ChecksDeps): McpServer {
     async ({ names, max_groups, max_occurrences, max_wait_ms }) => {
       const summaries = await runChecks(deps, { names, max_groups, max_occurrences, max_wait_ms });
       for (const s of summaries) {
-        if (s.status !== "running") deps.storage.deleteRun(s.run_id);
+        if (shouldDiscardRun(s)) deps.storage.deleteRun(s.run_id);
       }
       return textJson(summaries);
     }
@@ -145,7 +145,7 @@ export function createServer(deps: ChecksDeps): McpServer {
     },
     async ({ run_id, max_groups, max_occurrences, severity, sort_by }) => {
       const summary = summarizeRun(deps, { run_id, max_groups, max_occurrences, severity, sort_by });
-      if (summary.status !== "running") {
+      if (shouldDiscardRun(summary)) {
         deps.storage.deleteRun(run_id);
       }
       return textJson(summary);

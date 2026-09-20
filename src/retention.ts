@@ -1,4 +1,13 @@
-import type { Storage } from "./storage.js";
+import type { RunStatus, Storage } from "./storage.js";
+
+// A finished run that succeeded adds nothing the returned summary does not
+// already carry, so it is discarded to keep .signal/ small. A failure is kept:
+// the agent still needs get_log_slice, diff_runs and rerun_failed to drill in,
+// and deleting it makes the summary point at a run_id that no longer exists.
+export function shouldDiscardRun(run: { status: RunStatus; exit_code: number | null }): boolean {
+  const isFinished = run.status !== "running";
+  return isFinished && run.exit_code === 0;
+}
 
 export interface RetentionPolicy {
   max_runs_per_check?: number;

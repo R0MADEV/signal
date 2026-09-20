@@ -7,6 +7,31 @@ import { diffRuns } from "./diff.js";
 import { rerunFailed } from "./rerun.js";
 import { applyRetention, DEFAULT_RETENTION, shouldDiscardRun } from "./retention.js";
 
+// Every tool this server exposes. Kept as data so the unconfigured server below
+// can mirror it; a test asserts the two never drift apart.
+export const TOOL_NAMES = [
+  "list_checks", "start_check", "start_checks", "run_check", "run_checks",
+  "get_run_status", "list_runs", "get_run_summary", "diff_runs", "get_log_slice",
+  "rerun_failed",
+] as const;
+
+// Served when startup failed. Exiting would reach the client as
+// CONNECTION_CLOSED with no cause attached, so the server stays up and every
+// tool answers with the explanation — whichever one the agent reaches for first
+// tells it what is actually wrong.
+export function createUnconfiguredServer(reason: string): McpServer {
+  const server = new McpServer({ name: "signal-mcp", version: "0.1.0" });
+  for (const name of TOOL_NAMES) {
+    server.tool(
+      name,
+      "Unavailable: signal-mcp is not configured for this project. Call it to see why.",
+      {},
+      async () => textJson({ error: reason })
+    );
+  }
+  return server;
+}
+
 export function createServer(deps: ChecksDeps): McpServer {
   const server = new McpServer({
     name: "signal-mcp",

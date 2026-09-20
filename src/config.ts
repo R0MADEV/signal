@@ -207,3 +207,27 @@ export function loadRawConfig(path: string): RawConfig {
   const raw = readFileSync(abs, "utf8");
   return parseRawConfig(JSON.parse(raw));
 }
+
+// A startup problem reaches an MCP client as CONNECTION_CLOSED, which says
+// nothing about the cause. These messages are what the server serves instead of
+// dying, so the first tool call explains itself.
+
+export function explainMissingProject(rawConfig: RawConfig, cwd: string): string {
+  const configured = Object.keys(rawConfig.projects).join(", ") || "(none)";
+  return (
+    `signal-mcp is not configured for this directory.\n` +
+    `  current directory: ${cwd}\n` +
+    `  configured projects: ${configured}\n` +
+    `Add an entry whose "root" covers this directory to signal.config.json, ` +
+    `or point SIGNAL_CONFIG at a config file that has one.`
+  );
+}
+
+export function explainMissingConfig(configPath: string, cause?: unknown): string {
+  const detail = cause instanceof Error ? ` (${cause.message})` : "";
+  return (
+    `signal-mcp could not read its config.\n` +
+    `  looked at: ${configPath}${detail}\n` +
+    `Create that file, or set SIGNAL_CONFIG to where it lives.`
+  );
+}
